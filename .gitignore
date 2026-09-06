@@ -11,3 +11,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Design handoff bundle (regenerate as needed)
+bank-or-bust-design.zip

@@ -1,7 +1,6 @@
 extends Control
 
 @onready var username_edit: LineEdit = %UsernameEdit
-@onready var relay_url_edit: LineEdit = %RelayUrlEdit
 @onready var room_code_edit: LineEdit = %RoomCodeEdit
 @onready var create_button: Button = %CreateButton
 @onready var join_button: Button = %JoinButton
@@ -9,7 +8,6 @@ extends Control
 
 
 func _ready() -> void:
-	relay_url_edit.text = NetworkManager.default_relay_url
 	create_button.pressed.connect(_on_create_pressed)
 	join_button.pressed.connect(_on_join_pressed)
 	NetworkManager.connected_to_relay.connect(_on_connected)
@@ -31,7 +29,7 @@ func _on_create_pressed() -> void:
 		return
 	_set_buttons_enabled(false)
 	status_label.text = "Connecting..."
-	NetworkManager.connect_and_create_room(relay_url_edit.text, username)
+	NetworkManager.connect_and_create_room(NetworkManager.default_relay_url, username)
 
 
 func _on_join_pressed() -> void:
@@ -45,7 +43,7 @@ func _on_join_pressed() -> void:
 		return
 	_set_buttons_enabled(false)
 	status_label.text = "Connecting..."
-	NetworkManager.connect_and_join_room(relay_url_edit.text, username, code)
+	NetworkManager.connect_and_join_room(NetworkManager.default_relay_url, username, code)
 
 
 func _on_connected() -> void:
