@@ -17,16 +17,6 @@ signal game_state_received(payload: Dictionary)
 signal action_received(payload: Dictionary, from_id: String)
 signal chat_received(entry: Dictionary)
 
-const PLAYER_COLORS: Array[Color] = [
-	Color("e63946"), # red
-	Color("2a9d8f"), # teal
-	Color("f4a261"), # orange
-	Color("457b9d"), # blue
-	Color("e9c46a"), # yellow
-	Color("9d4edd"), # purple
-	Color("06d6a0"), # green
-	Color("ff70a6"), # pink
-]
 
 var default_relay_url := "wss://diceit-pjz7.onrender.com"
 
@@ -48,18 +38,40 @@ var chat_log: Array = [] # [{username, color_index, text}], newest last
 func _ready() -> void:
 	# On web, ?relay=ws://host:port overrides the built-in default, so a link
 	# can point players at a specific relay without a rebuild.
-	if OS.has_feature("web") and JavaScriptBridge.get_interface("window") != null:
-		var search: String = str(JavaScriptBridge.eval("window.location.search", true))
-		var marker := "relay="
-		var at := search.find(marker)
-		if at != -1:
-			var raw := search.substr(at + marker.length())
-			var amp := raw.find("&")
-			if amp != -1:
-				raw = raw.substr(0, amp)
-			var decoded: String = str(JavaScriptBridge.eval("decodeURIComponent('%s')" % raw, true))
-			if not decoded.is_empty():
-				default_relay_url = decoded
+	var relay := get_query_param("relay")
+	if not relay.is_empty():
+		default_relay_url = relay
+
+
+## A link that drops someone straight onto the title screen with this room's
+## code already filled in. Empty off the web, where there is no page URL.
+func join_link() -> String:
+	if not OS.has_feature("web") or JavaScriptBridge.get_interface("window") == null:
+		return ""
+	if room_code.is_empty():
+		return ""
+	var origin: String = str(JavaScriptBridge.eval("window.location.origin + window.location.pathname", true))
+	return "%s?room=%s" % [origin, room_code]
+
+
+## Reads a query-string parameter from the page URL. Always "" off the web.
+func get_query_param(key: String) -> String:
+	if not OS.has_feature("web") or JavaScriptBridge.get_interface("window") == null:
+		return ""
+
+	var search: String = str(JavaScriptBridge.eval("window.location.search", true))
+	var marker := key + "="
+	var at := search.find(marker)
+	if at == -1:
+		return ""
+
+	var raw := search.substr(at + marker.length())
+	var amp := raw.find("&")
+	if amp != -1:
+		raw = raw.substr(0, amp)
+	if raw.is_empty():
+		return ""
+	return str(JavaScriptBridge.eval("decodeURIComponent('%s')" % raw, true))
 
 
 func _process(_delta: float) -> void:
@@ -157,7 +169,7 @@ func leave_room() -> void:
 
 
 func get_player_color(idx: int) -> Color:
-	return PLAYER_COLORS[idx % PLAYER_COLORS.size()]
+	return Style.player_color(idx)
 
 
 func _send(data: Dictionary) -> void:

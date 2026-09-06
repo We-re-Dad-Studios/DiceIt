@@ -17,10 +17,21 @@ roll, choose which dice to lock in, bank your points or push your luck.
 2. Open `godot/project.godot` in Godot 4.7.
 3. Run the project (F5). Use **Debug → Run Multiple Instances** (or just
    export/run a second copy) to test with 2+ "players" on one machine.
-   The default relay URL (`ws://127.0.0.1:8765`) is pre-filled on the
-   title screen.
+   The relay URL is baked into `NetworkManager.default_relay_url`; on the
+   web it can be overridden per-link with `?relay=ws://127.0.0.1:8765`.
 4. One instance clicks **Create Room**, the others enter that room code
    and click **Join Room**. Host clicks **Start Game** once everyone's in.
+
+### Shareable join links (web)
+
+The lobby shows a link that carries the room code, so the host can paste it
+into a chat instead of dictating four characters. Supported parameters:
+
+- `?room=AB12` — prefills the room code
+- `?name=alice` — prefills the username
+- `&go=1` — with a name present, creates or joins immediately
+
+`?room=AB12&name=bob&go=1` drops a player straight into that room.
 
 ## Playing in a browser
 

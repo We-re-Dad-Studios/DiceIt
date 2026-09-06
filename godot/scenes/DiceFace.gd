@@ -1,31 +1,46 @@
 class_name DiceFace
 extends Control
-## A single hand-drawn die face (no external art needed). Draws real pips
-## for 1-6, and supports three visual states: blank (not yet rolled),
-## normal/selectable, locked (safely banked into the round), and busted.
+## A single die, drawn to the "Felt & Brass" spec - no sprites needed.
+##
+## Body 88x88, radius 16, border 3, pips 12 across a 3x3 grid (5px gutters,
+## 13px inset). The five states differ on two axes at once (body value AND
+## border hue) so they stay readable at a glance, at small window sizes, and
+## for colour-blind players.
 
 signal toggled(index: int, pressed: bool)
 
-const SIZE := Vector2(56, 56)
-const PIP_POSITIONS := {
-	1: [Vector2(0.5, 0.5)],
-	2: [Vector2(0.27, 0.27), Vector2(0.73, 0.73)],
-	3: [Vector2(0.27, 0.27), Vector2(0.5, 0.5), Vector2(0.73, 0.73)],
-	4: [Vector2(0.27, 0.27), Vector2(0.73, 0.27), Vector2(0.27, 0.73), Vector2(0.73, 0.73)],
-	5: [Vector2(0.27, 0.27), Vector2(0.73, 0.27), Vector2(0.5, 0.5), Vector2(0.27, 0.73), Vector2(0.73, 0.73)],
-	6: [Vector2(0.27, 0.2), Vector2(0.73, 0.2), Vector2(0.27, 0.5), Vector2(0.73, 0.5), Vector2(0.27, 0.8), Vector2(0.73, 0.8)],
+const BODY := 88.0
+const RADIUS := 16
+const BORDER := 3
+const PIP_DIAMETER := 12.0
+const INSET := 13.0
+const GUTTER := 5.0
+const LIFT := 8.0          # selected dice rise out of the row
+const CROSS_INSET := 14.0
+const CROSS_WIDTH := 6.0
+
+## Which of the 3x3 cells carry a pip, per face value.
+const PIP_LAYOUT := {
+	1: [4],
+	2: [0, 8],
+	3: [0, 4, 8],
+	4: [0, 2, 6, 8],
+	5: [0, 2, 4, 6, 8],
+	6: [0, 2, 3, 5, 6, 8],
 }
 
 var index := -1
 var value := 0
-## "blank" (not yet rolled), "selectable" (this roll, may lock), "locked" (banked this round), "busted"
+## "blank" | "normal" | "selected" | "locked" | "busted"
 var face_state := "blank"
 var interactive := false
 var selected := false
+## Scale factor - 1.0 is the spec's 88px die; the "last turn" row uses ~0.64.
+var scale_factor := 1.0
 
 
 func _ready() -> void:
-	custom_minimum_size = SIZE
+	custom_minimum_size = Vector2(BODY, BODY + LIFT) * scale_factor
 	mouse_filter = Control.MOUSE_FILTER_STOP if interactive else Control.MOUSE_FILTER_IGNORE
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if interactive else Control.CURSOR_ARROW
 
@@ -39,47 +54,95 @@ func _gui_input(event: InputEvent) -> void:
 		toggled.emit(index, selected)
 
 
-func _draw() -> void:
-	var bg_color: Color
-	var border_color := Color(0, 0, 0, 0)
-	var border_width := 0
-
-	match face_state:
-		"blank":
-			bg_color = Color(0.22, 0.22, 0.26)
+func _colors() -> Dictionary:
+	match _effective_state():
+		"normal":
+			return {"bg": Color("F4F1E7"), "border": Color("CFC8B5"), "pip": Color("16291F")}
+		"selected":
+			return {"bg": Color("F4F1E7"), "border": Style.COLD, "pip": Color("16291F")}
 		"locked":
-			bg_color = Color(0.93, 0.86, 0.55)
-			border_color = Color(0.75, 0.6, 0.15)
-			border_width = 3
+			return {"bg": Style.GOLD, "border": Color("F2CE78"), "pip": Color("3B2A08")}
 		"busted":
-			bg_color = Color(0.4, 0.16, 0.16)
+			return {"bg": Color("38130F"), "border": Style.BUST, "pip": Color(0, 0, 0, 0)}
 		_:
-			bg_color = Color(0.95, 0.94, 0.9)
-			if selected:
-				border_color = Color(0.35, 0.75, 0.45)
-				border_width = 4
+			return {"bg": Color("14291F"), "border": Color("2C4A3D"), "pip": Color(0, 0, 0, 0)}
 
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg_color
-	sb.corner_radius_top_left = 10
-	sb.corner_radius_top_right = 10
-	sb.corner_radius_bottom_left = 10
-	sb.corner_radius_bottom_right = 10
-	sb.border_width_left = border_width
-	sb.border_width_right = border_width
-	sb.border_width_top = border_width
-	sb.border_width_bottom = border_width
-	sb.border_color = border_color
-	draw_style_box(sb, Rect2(Vector2.ZERO, SIZE))
 
-	if face_state == "blank":
+func _effective_state() -> String:
+	if face_state == "normal" and selected:
+		return "selected"
+	return face_state
+
+
+func _draw() -> void:
+	var s := scale_factor
+	var state := _effective_state()
+	var c := _colors()
+	var body := Vector2(BODY, BODY) * s
+
+	# The control reserves LIFT of headroom: dice normally sit on the bottom
+	# baseline, and a selected die rises into that space.
+	var top := 0.0 if state == "selected" else LIFT * s
+	var rect := Rect2(Vector2(0, top), body)
+
+	if state == "selected":
+		# 4px cold glow at 22%, plus a soft drop shadow.
+		var glow := StyleBoxFlat.new()
+		glow.bg_color = Color(Style.COLD.r, Style.COLD.g, Style.COLD.b, 0.22)
+		glow.set_corner_radius_all(int((RADIUS + 4) * s))
+		draw_style_box(glow, rect.grow(4.0 * s))
+
+	var box := StyleBoxFlat.new()
+	box.bg_color = c["bg"]
+	box.set_corner_radius_all(int(RADIUS * s))
+	box.set_border_width_all(int(BORDER * s))
+	box.border_color = c["border"]
+	if state == "selected":
+		box.shadow_color = Color(0, 0, 0, 0.4)
+		box.shadow_size = int(12 * s)
+		box.shadow_offset = Vector2(0, 8 * s)
+	draw_style_box(box, rect)
+
+	if state == "blank" or state == "busted":
+		if state == "busted":
+			_draw_cross(rect)
 		return
 
-	var pip_color := Color(0.55, 0.2, 0.2) if face_state == "busted" else Color(0.15, 0.15, 0.18)
-	var positions: Array = PIP_POSITIONS.get(value, [])
-	for pos in positions:
-		draw_circle(Vector2(pos.x * SIZE.x, pos.y * SIZE.y), 5.0, pip_color)
+	_draw_pips(rect, c["pip"])
 
-	if face_state == "busted":
-		draw_line(Vector2(6, 6), SIZE - Vector2(6, 6), Color(0.85, 0.25, 0.25), 3.0)
-		draw_line(Vector2(SIZE.x - 6, 6), Vector2(6, SIZE.y - 6), Color(0.85, 0.25, 0.25), 3.0)
+
+func _draw_pips(rect: Rect2, pip_color: Color) -> void:
+	var cells: Array = PIP_LAYOUT.get(value, [])
+	if cells.is_empty():
+		return
+
+	var s := scale_factor
+	var inset := INSET * s
+	var pip := PIP_DIAMETER * s
+	var gutter := GUTTER * s
+
+	# The 3x3 grid fills the inset box, so pip centres stay symmetric about the
+	# die's centre regardless of pip diameter.
+	var inner := BODY * s - inset * 2.0
+	var cell := (inner - gutter * 2.0) / 3.0
+	var first_centre := inset + cell * 0.5
+
+	for entry in cells:
+		var col := int(entry) % 3
+		var row := int(entry) / 3
+		var centre := rect.position + Vector2(
+			first_centre + col * (cell + gutter),
+			first_centre + row * (cell + gutter)
+		)
+		draw_circle(centre, pip * 0.5, pip_color)
+
+
+func _draw_cross(rect: Rect2) -> void:
+	var s := scale_factor
+	var inset := CROSS_INSET * s
+	var a := rect.position + Vector2(inset, inset)
+	var b := rect.position + rect.size - Vector2(inset, inset)
+	draw_line(a, b, Style.BUST, CROSS_WIDTH * s, true)
+	draw_line(
+		Vector2(b.x, a.y), Vector2(a.x, b.y), Style.BUST, CROSS_WIDTH * s, true
+	)

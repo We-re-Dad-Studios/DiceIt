@@ -33,6 +33,8 @@ func start_game(player_list: Array) -> void:
 			"username": p.get("username", "Player"),
 			"color_index": p.get("color_index", 0),
 			"score": 0,
+			"turns": 0,   # turns finished, for the final standings line
+			"banks": 0,   # of those, how many ended in a bank rather than a bust
 		})
 	turn_order = players.map(func(p): return p["id"])
 	current_turn_index = 0
@@ -41,7 +43,22 @@ func start_game(player_list: Array) -> void:
 	_emit_state()
 
 
+## Host-only: deal a fresh game to the same players, keeping the room intact.
+func restart() -> void:
+	var roster: Array = players.map(func(p): return {
+		"id": p["id"], "username": p["username"], "color_index": p["color_index"],
+	})
+	start_game(roster)
+
+
 func apply_action(from_id: String, action: String, payload: Dictionary) -> void:
+	# Play Again is open to anyone once the game is over, not just whoever
+	# happens to be first in the turn order.
+	if action == "restart":
+		if phase == "game_over":
+			restart()
+		return
+
 	if phase == "game_over":
 		return
 	if from_id != current_player_id():
@@ -98,6 +115,9 @@ func _do_roll() -> void:
 		# Every die still in play busted before anything from this roll locked in.
 		var lost := round_pot
 		round_pot = 0
+		var busting_player := _find_player(current_player_id())
+		if not busting_player.is_empty():
+			busting_player["turns"] = int(busting_player.get("turns", 0)) + 1
 		_advance_turn("%s busted and lost %d points." % [_current_username(), lost], results)
 		return
 
@@ -138,6 +158,8 @@ func _do_bank() -> void:
 	var banked := round_pot
 	if not player.is_empty():
 		player["score"] += banked
+		player["turns"] = int(player.get("turns", 0)) + 1
+		player["banks"] = int(player.get("banks", 0)) + 1
 
 	if player.get("score", 0) >= TARGET_SCORE:
 		phase = "game_over"

@@ -25,199 +25,271 @@ theme_override_constants/margin_right=24
 theme_override_constants/margin_bottom=24
 
 [node name="HBox" type="HBoxContainer" parent="Margin"]
+unique_name_in_owner=true
 layout_mode=2
-theme_override_constants/separation=24
+theme_override_constants/separation=20
 
 [node name="LeftPanel" type="PanelContainer" parent="Margin/HBox"]
+unique_name_in_owner=true
 layout_mode=2
-custom_minimum_size=Vector2(220, 0)
+custom_minimum_size=Vector2(250, 0)
 
-[node name="LeftMargin" type="MarginContainer" parent="Margin/HBox/LeftPanel"]
+[node name="LeftVBox" type="VBoxContainer" parent="Margin/HBox/LeftPanel"]
 layout_mode=2
-theme_override_constants/margin_left=12
-theme_override_constants/margin_top=12
-theme_override_constants/margin_right=12
-theme_override_constants/margin_bottom=12
+theme_override_constants/separation=16
 
-[node name="LeftVBox" type="VBoxContainer" parent="Margin/HBox/LeftPanel/LeftMargin"]
+[node name="BoardHead" type="HBoxContainer" parent="Margin/HBox/LeftPanel/LeftVBox"]
+layout_mode=2
+
+[node name="ScoreboardTitle" type="Label" parent="Margin/HBox/LeftPanel/LeftVBox/BoardHead"]
+unique_name_in_owner=true
+layout_mode=2
+size_flags_horizontal=3
+text="Scoreboard"
+
+[node name="TargetLabel" type="Label" parent="Margin/HBox/LeftPanel/LeftVBox/BoardHead"]
+unique_name_in_owner=true
+layout_mode=2
+text="/4000"
+
+[node name="Scoreboard" type="VBoxContainer" parent="Margin/HBox/LeftPanel/LeftVBox"]
+unique_name_in_owner=true
 layout_mode=2
 theme_override_constants/separation=8
 
-[node name="ScoreboardTitle" type="Label" parent="Margin/HBox/LeftPanel/LeftMargin/LeftVBox"]
-layout_mode=2
-text="Scoreboard"
-theme_override_font_sizes/font_size=18
-
-[node name="Scoreboard" type="VBoxContainer" parent="Margin/HBox/LeftPanel/LeftMargin/LeftVBox"]
-unique_name_in_owner=true
-layout_mode=2
-theme_override_constants/separation=6
-
 [node name="CenterPanel" type="PanelContainer" parent="Margin/HBox"]
+unique_name_in_owner=true
 layout_mode=2
 size_flags_horizontal=3
 
-[node name="CenterMargin" type="MarginContainer" parent="Margin/HBox/CenterPanel"]
-layout_mode=2
-theme_override_constants/margin_left=24
-theme_override_constants/margin_top=24
-theme_override_constants/margin_right=24
-theme_override_constants/margin_bottom=24
-
-[node name="CenterVBox" type="VBoxContainer" parent="Margin/HBox/CenterPanel/CenterMargin"]
-layout_mode=2
-theme_override_constants/separation=14
-alignment=1
-
-[node name="TurnLabel" type="Label" parent="Margin/HBox/CenterPanel/CenterMargin/CenterVBox"]
+[node name="CenterVBox" type="VBoxContainer" parent="Margin/HBox/CenterPanel"]
 unique_name_in_owner=true
 layout_mode=2
-theme_override_font_sizes/font_size=24
+theme_override_constants/separation=0
+alignment=1
+
+[node name="NowPlayingLabel" type="Label" parent="Margin/HBox/CenterPanel/CenterVBox"]
+unique_name_in_owner=true
+layout_mode=2
+text="Now playing"
+horizontal_alignment=1
+
+[node name="TurnLabel" type="Label" parent="Margin/HBox/CenterPanel/CenterVBox"]
+unique_name_in_owner=true
+layout_mode=2
 text="..."
 horizontal_alignment=1
 
-[node name="LiveCountLabel" type="Label" parent="Margin/HBox/CenterPanel/CenterMargin/CenterVBox"]
-unique_name_in_owner=true
-layout_mode=2
-text="Live dice: 5"
-horizontal_alignment=1
-
-[node name="PotLabel" type="Label" parent="Margin/HBox/CenterPanel/CenterMargin/CenterVBox"]
-unique_name_in_owner=true
-layout_mode=2
-text="Round pot: 0"
-horizontal_alignment=1
-
-[node name="DiceRow" type="HBoxContainer" parent="Margin/HBox/CenterPanel/CenterMargin/CenterVBox"]
+[node name="Ledger" type="HBoxContainer" parent="Margin/HBox/CenterPanel/CenterVBox"]
 unique_name_in_owner=true
 layout_mode=2
 alignment=1
-theme_override_constants/separation=10
+theme_override_constants/separation=44
 
-[node name="ButtonRow" type="HBoxContainer" parent="Margin/HBox/CenterPanel/CenterMargin/CenterVBox"]
+[node name="LiveBlock" type="VBoxContainer" parent="Margin/HBox/CenterPanel/CenterVBox/Ledger"]
+layout_mode=2
+theme_override_constants/separation=6
+
+[node name="LiveCaption" type="Label" parent="Margin/HBox/CenterPanel/CenterVBox/Ledger/LiveBlock"]
+unique_name_in_owner=true
+layout_mode=2
+text="Live dice"
+horizontal_alignment=1
+
+[node name="LiveCountLabel" type="Label" parent="Margin/HBox/CenterPanel/CenterVBox/Ledger/LiveBlock"]
+unique_name_in_owner=true
+layout_mode=2
+text="5"
+horizontal_alignment=1
+
+[node name="LedgerRule" type="Panel" parent="Margin/HBox/CenterPanel/CenterVBox/Ledger"]
+unique_name_in_owner=true
+layout_mode=2
+size_flags_vertical=4
+custom_minimum_size=Vector2(1, 52)
+
+[node name="PotBlock" type="VBoxContainer" parent="Margin/HBox/CenterPanel/CenterVBox/Ledger"]
+layout_mode=2
+theme_override_constants/separation=6
+
+[node name="PotCaption" type="Label" parent="Margin/HBox/CenterPanel/CenterVBox/Ledger/PotBlock"]
+unique_name_in_owner=true
+layout_mode=2
+text="Round pot"
+horizontal_alignment=1
+
+[node name="PotLabel" type="Label" parent="Margin/HBox/CenterPanel/CenterVBox/Ledger/PotBlock"]
+unique_name_in_owner=true
+layout_mode=2
+text="0"
+horizontal_alignment=1
+
+[node name="DiceRow" type="HBoxContainer" parent="Margin/HBox/CenterPanel/CenterVBox"]
+unique_name_in_owner=true
 layout_mode=2
 alignment=1
-theme_override_constants/separation=12
+theme_override_constants/separation=16
 
-[node name="RollButton" type="Button" parent="Margin/HBox/CenterPanel/CenterMargin/CenterVBox/ButtonRow"]
+[node name="ButtonRow" type="HBoxContainer" parent="Margin/HBox/CenterPanel/CenterVBox"]
+unique_name_in_owner=true
+layout_mode=2
+alignment=1
+theme_override_constants/separation=14
+
+[node name="RollButton" type="Button" parent="Margin/HBox/CenterPanel/CenterVBox/ButtonRow"]
 unique_name_in_owner=true
 layout_mode=2
 text="Roll"
 
-[node name="LockButton" type="Button" parent="Margin/HBox/CenterPanel/CenterMargin/CenterVBox/ButtonRow"]
+[node name="LockButton" type="Button" parent="Margin/HBox/CenterPanel/CenterVBox/ButtonRow"]
 unique_name_in_owner=true
 layout_mode=2
 text="Lock Selected"
 
-[node name="BankButton" type="Button" parent="Margin/HBox/CenterPanel/CenterMargin/CenterVBox/ButtonRow"]
+[node name="BankButton" type="Button" parent="Margin/HBox/CenterPanel/CenterVBox/ButtonRow"]
 unique_name_in_owner=true
 layout_mode=2
 text="Bank"
 
-[node name="MessageLabel" type="Label" parent="Margin/HBox/CenterPanel/CenterMargin/CenterVBox"]
+[node name="MessageRow" type="HBoxContainer" parent="Margin/HBox/CenterPanel/CenterVBox"]
+unique_name_in_owner=true
+layout_mode=2
+alignment=1
+
+[node name="MessagePill" type="PanelContainer" parent="Margin/HBox/CenterPanel/CenterVBox/MessageRow"]
+unique_name_in_owner=true
+layout_mode=2
+
+[node name="MessageLabel" type="Label" parent="Margin/HBox/CenterPanel/CenterVBox/MessageRow/MessagePill"]
 unique_name_in_owner=true
 layout_mode=2
 text=""
 horizontal_alignment=1
-autowrap_mode=2
 
-[node name="LastTurnLabel" type="Label" parent="Margin/HBox/CenterPanel/CenterMargin/CenterVBox"]
+[node name="LastTurnLabel" type="Label" parent="Margin/HBox/CenterPanel/CenterVBox"]
 unique_name_in_owner=true
 visible=false
 layout_mode=2
 text="Last turn"
 horizontal_alignment=1
-theme_override_font_sizes/font_size=12
 
-[node name="LastTurnRow" type="HBoxContainer" parent="Margin/HBox/CenterPanel/CenterMargin/CenterVBox"]
+[node name="LastTurnRow" type="HBoxContainer" parent="Margin/HBox/CenterPanel/CenterVBox"]
 unique_name_in_owner=true
 layout_mode=2
 alignment=1
-theme_override_constants/separation=8
+theme_override_constants/separation=10
 
 [node name="RightPanel" type="PanelContainer" parent="Margin/HBox"]
+unique_name_in_owner=true
 layout_mode=2
-custom_minimum_size=Vector2(280, 0)
+custom_minimum_size=Vector2(300, 0)
 
-[node name="ChatMargin" type="MarginContainer" parent="Margin/HBox/RightPanel"]
+[node name="ChatBox" type="VBoxContainer" parent="Margin/HBox/RightPanel"]
 layout_mode=2
-theme_override_constants/margin_left=12
-theme_override_constants/margin_top=12
-theme_override_constants/margin_right=12
-theme_override_constants/margin_bottom=12
-
-[node name="ChatBox" type="VBoxContainer" parent="Margin/HBox/RightPanel/ChatMargin"]
-layout_mode=2
-theme_override_constants/separation=8
+theme_override_constants/separation=14
 script=ExtResource("2")
 
-[node name="ChatTitle" type="Label" parent="Margin/HBox/RightPanel/ChatMargin/ChatBox"]
+[node name="ChatTitle" type="Label" parent="Margin/HBox/RightPanel/ChatBox"]
+unique_name_in_owner=true
 layout_mode=2
-theme_override_font_sizes/font_size=18
 text="Chat"
 
-[node name="ChatScroll" type="ScrollContainer" parent="Margin/HBox/RightPanel/ChatMargin/ChatBox"]
+[node name="ChatScroll" type="ScrollContainer" parent="Margin/HBox/RightPanel/ChatBox"]
 unique_name_in_owner=true
 layout_mode=2
 size_flags_vertical=3
 
-[node name="ChatLog" type="VBoxContainer" parent="Margin/HBox/RightPanel/ChatMargin/ChatBox/ChatScroll"]
+[node name="ChatLog" type="VBoxContainer" parent="Margin/HBox/RightPanel/ChatBox/ChatScroll"]
 unique_name_in_owner=true
 layout_mode=2
 size_flags_horizontal=3
-theme_override_constants/separation=4
+size_flags_vertical=8
+theme_override_constants/separation=12
 
-[node name="ChatRow" type="HBoxContainer" parent="Margin/HBox/RightPanel/ChatMargin/ChatBox"]
+[node name="ChatRow" type="HBoxContainer" parent="Margin/HBox/RightPanel/ChatBox"]
 layout_mode=2
-theme_override_constants/separation=6
+theme_override_constants/separation=8
 
-[node name="ChatInput" type="LineEdit" parent="Margin/HBox/RightPanel/ChatMargin/ChatBox/ChatRow"]
+[node name="ChatInput" type="LineEdit" parent="Margin/HBox/RightPanel/ChatBox/ChatRow"]
 unique_name_in_owner=true
 layout_mode=2
 size_flags_horizontal=3
 placeholder_text="Say something..."
 max_length=300
 
-[node name="ChatSendButton" type="Button" parent="Margin/HBox/RightPanel/ChatMargin/ChatBox/ChatRow"]
+[node name="ChatSendButton" type="Button" parent="Margin/HBox/RightPanel/ChatBox/ChatRow"]
 unique_name_in_owner=true
 layout_mode=2
 text="Send"
 
-[node name="GameOverPanel" type="PanelContainer" parent="."]
+[node name="GameOverOverlay" type="ColorRect" parent="."]
 unique_name_in_owner=true
 visible=false
+layout_mode=1
+anchors_preset=15
+anchor_right=1.0
+anchor_bottom=1.0
+grow_horizontal=2
+grow_vertical=2
+color=Color(0.043, 0.09, 0.067, 0.72)
+
+[node name="GameOverPanel" type="PanelContainer" parent="GameOverOverlay"]
+unique_name_in_owner=true
 layout_mode=1
 anchors_preset=8
 anchor_left=0.5
 anchor_top=0.5
 anchor_right=0.5
 anchor_bottom=0.5
-offset_left=-180.0
-offset_top=-80.0
-offset_right=180.0
-offset_bottom=80.0
+offset_left=-310.0
+offset_top=-230.0
+offset_right=310.0
+offset_bottom=230.0
 grow_horizontal=2
 grow_vertical=2
 
-[node name="GameOverMargin" type="MarginContainer" parent="GameOverPanel"]
+[node name="GameOverVBox" type="VBoxContainer" parent="GameOverOverlay/GameOverPanel"]
 layout_mode=2
-theme_override_constants/margin_left=20
-theme_override_constants/margin_top=20
-theme_override_constants/margin_right=20
-theme_override_constants/margin_bottom=20
+theme_override_constants/separation=30
 
-[node name="GameOverVBox" type="VBoxContainer" parent="GameOverPanel/GameOverMargin"]
+[node name="Head" type="VBoxContainer" parent="GameOverOverlay/GameOverPanel/GameOverVBox"]
 layout_mode=2
-theme_override_constants/separation=12
+theme_override_constants/separation=10
 
-[node name="WinnerLabel" type="Label" parent="GameOverPanel/GameOverMargin/GameOverVBox"]
+[node name="StandingsCaption" type="Label" parent="GameOverOverlay/GameOverPanel/GameOverVBox/Head"]
 unique_name_in_owner=true
 layout_mode=2
-text="Game Over"
+text="Final standings"
 horizontal_alignment=1
-autowrap_mode=2
 
-[node name="BackToTitleButton" type="Button" parent="GameOverPanel/GameOverMargin/GameOverVBox"]
+[node name="WinnerLabel" type="Label" parent="GameOverOverlay/GameOverPanel/GameOverVBox/Head"]
 unique_name_in_owner=true
 layout_mode=2
-text="Back to Title"
+text="Game over"
+horizontal_alignment=1
+
+[node name="WinnerDetail" type="Label" parent="GameOverOverlay/GameOverPanel/GameOverVBox/Head"]
+unique_name_in_owner=true
+layout_mode=2
+text=""
+horizontal_alignment=1
+
+[node name="Standings" type="VBoxContainer" parent="GameOverOverlay/GameOverPanel/GameOverVBox"]
+unique_name_in_owner=true
+layout_mode=2
+theme_override_constants/separation=8
+
+[node name="Actions" type="HBoxContainer" parent="GameOverOverlay/GameOverPanel/GameOverVBox"]
+layout_mode=2
+theme_override_constants/separation=14
+
+[node name="PlayAgainButton" type="Button" parent="GameOverOverlay/GameOverPanel/GameOverVBox/Actions"]
+unique_name_in_owner=true
+layout_mode=2
+size_flags_horizontal=3
+text="Play Again"
+
+[node name="LeaveButton" type="Button" parent="GameOverOverlay/GameOverPanel/GameOverVBox/Actions"]
+unique_name_in_owner=true
+layout_mode=2
+text="Leave Room"

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #0B1712; }
+  a { color: #D8A23A; text-decoration: none; }
+  a:hover { color: #EBB752; }
+</style>
+</helmet>
+
+<section style="display:flex;flex-direction:column;gap:56px;padding:56px;font-family:Archivo,'Helvetica Neue',Helvetica,sans-serif;color:#F2EFE6;background:#0B1712">
+  <div id="1a" style="display:flex;flex-direction:column;gap:56px">
+
+    <div style="display:flex;flex-direction:column;gap:20px;max-width:820px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <span style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#0B1712;background:#D8A23A;padding:6px 10px;border-radius:6px">1A</span>
+        <span style="font:500 13px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">Visual direction — Bank or Bust</span>
+      </div>
+      <h1 style="margin:0;font:800 68px/0.98 Archivo,sans-serif;letter-spacing:-0.025em">Felt &amp; Brass</h1>
+      <p style="margin:0;font:400 18px/1.6 Archivo,sans-serif;color:#C9D6CD;text-wrap:pretty">A dark green felt table lit by brass. The background is the table, the panels are cards laid on it, and the only saturated warm colour in the whole interface is money: the room code, the round pot, the primary button, and locked dice all share one gold. Everything a player can lose is red, everything they are about to choose is a cold blue that cannot be confused with either. The type is one grotesque for voice and one monospace for numbers, so scores, codes and pots read as ledger figures rather than UI labels.</p>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <h2 style="margin:0;font:600 15px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">Palette</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
+        <sc-for list="{{ palette }}" as="p" hint-placeholder-count="10">
+          <div style="border-radius:12px;overflow:hidden;border:1px solid #2A463A;background:#172E25">
+            <div style="height:64px;background:{{ p.hex }}"></div>
+            <div style="padding:10px 12px;display:flex;flex-direction:column;gap:3px">
+              <span style="font:500 14px/1.2 Archivo,sans-serif;color:#F2EFE6">{{ p.name }}</span>
+              <span style="font:400 12px/1.2 'JetBrains Mono',monospace;color:#93A79B">{{ p.hex }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+        <span style="font:500 13px/1 Archivo,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8FA69A">Player colours (join order)</span>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <sc-for list="{{ players8 }}" as="p" hint-placeholder-count="8">
+            <div style="display:flex;align-items:center;gap:9px;background:#172E25;border:1px solid #2A463A;border-radius:999px;padding:7px 14px 7px 8px">
+              <span style="width:20px;height:20px;border-radius:6px;background:{{ p.hex }}"></span>
+              <span style="font:400 12px/1 'JetBrains Mono',monospace;color:#C9D6CD">{{ p.hex }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <h2 style="margin:0;font:600 15px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">Typography</h2>
+      <div style="display:flex;flex-direction:column;gap:0;border:1px solid #2A463A;border-radius:16px;overflow:hidden;background:#172E25">
+        <sc-for list="{{ typeScale }}" as="t" hint-placeholder-count="8">
+          <div style="display:grid;grid-template-columns:200px 1fr 280px;gap:20px;align-items:center;padding:18px 24px;border-bottom:1px solid #223B31">
+            <span style="font:500 13px/1.3 Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8FA69A">{{ t.role }}</span>
+            <span style="color:{{ t.color }};font:{{ t.font }}">{{ t.sample }}</span>
+            <span style="font:400 12px/1.5 'JetBrains Mono',monospace;color:#93A79B">{{ t.spec }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin:0;font:400 15px/1.6 Archivo,sans-serif;color:#93A79B">Archivo (Google Fonts, OFL) for all voice type; fallback <span style="font-family:'JetBrains Mono',monospace;font-size:13px">Helvetica Neue → Arial → sans-serif</span>. JetBrains Mono (OFL) for every figure a player compares — room code, scores, pot, dice counts; fallback <span style="font-family:'JetBrains Mono',monospace;font-size:13px">Courier New → monospace</span>.</p>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <h2 style="margin:0;font:600 15px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">Dice — five states</h2>
+      <div style="display:flex;gap:28px;flex-wrap:wrap;background:#172E25;border:1px solid #2A463A;border-radius:16px;padding:36px 32px">
+        <sc-for list="{{ specDice }}" as="d" hint-placeholder-count="5">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:16px;width:150px">
+            <div style="height:104px;display:flex;align-items:center;justify-content:center">
+              <div style="position:relative;width:88px;height:88px;border-radius:16px;box-sizing:border-box;padding:13px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:5px;background:{{ d.bg }};border:3px solid {{ d.border }};transform:{{ d.lift }};box-shadow:{{ d.shadow }}">
+                <sc-for list="{{ d.cells }}" as="c" hint-placeholder-count="9">
+                  <span style="border-radius:50%;background:{{ c }}"></span>
+                </sc-for>
+                <sc-if value="{{ d.busted }}" hint-placeholder-val="{{ false }}">
+                  <span style="position:absolute;left:14px;right:14px;top:50%;height:6px;border-radius:3px;background:#B3372F;transform:translateY(-50%) rotate(45deg)"></span>
+                  <span style="position:absolute;left:14px;right:14px;top:50%;height:6px;border-radius:3px;background:#B3372F;transform:translateY(-50%) rotate(-45deg)"></span>
+                </sc-if>
+              </div>
+            </div>
+            <span style="font:700 14px/1 Archivo,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#F2EFE6">{{ d.label }}</span>
+            <span style="font:400 12px/1.6 'JetBrains Mono',monospace;color:#93A79B;text-align:center">{{ d.spec }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin:0;font:400 15px/1.6 Archivo,sans-serif;color:#93A79B;max-width:900px;text-wrap:pretty">Body 88×88, radius 16, border 3, pip diameter 12 on a 3×3 grid (5px gutters, 13px inset). The five states differ on two axes at once — body value and border hue — so they survive being read at a glance, at small window sizes, and by colour-blind players: dark-empty, light-neutral, light-with-cold-ring (raised 8px), solid gold, dark-red-crossed.</p>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <h2 style="margin:0;font:600 15px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">Components</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px">
+        <sc-for list="{{ components }}" as="c" hint-placeholder-count="5">
+          <div style="background:#172E25;border:1px solid #2A463A;border-radius:16px;padding:22px 24px;display:flex;flex-direction:column;gap:14px">
+            <span style="font:700 14px/1 Archivo,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#F2EFE6">{{ c.name }}</span>
+            <span style="font:400 12px/1.7 'JetBrains Mono',monospace;color:#93A79B;white-space:pre-line">{{ c.spec }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background:#172E25;border:1px solid #2A463A;border-radius:16px;padding:28px;display:flex;flex-wrap:wrap;gap:14px;align-items:center">
+        <button style="font:700 18px/1 Archivo,sans-serif;color:#0F221A;background:#D8A23A;border:none;border-radius:10px;padding:15px 30px;cursor:pointer" style-hover="background:#EBB752" style-active="background:#BE8A28;transform:translateY(1px)">Roll</button>
+        <button style="font:700 18px/1 Archivo,sans-serif;color:#C9D6CD;background:transparent;border:2px solid #2C4A3D;border-radius:10px;padding:13px 28px;cursor:pointer" style-hover="border-color:#45705C;background:#1D362C">Bank</button>
+        <button style="font:700 18px/1 Archivo,sans-serif;color:#5C7466;background:#1B322A;border:none;border-radius:10px;padding:15px 30px" disabled="disabled">Roll</button>
+        <input placeholder="Username" style="font:400 17px/1 Archivo,sans-serif;color:#F2EFE6;background:#0E1D18;border:2px solid #2C4A3D;border-radius:10px;padding:14px 16px;outline:none;min-width:220px" style-focus="border-color:#D8A23A">
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <h2 style="margin:0;font:600 15px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">Screens at 1280 × 720</h2>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:500 13px/1 Archivo,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8FA69A">01 — Title</span>
+        <div style="width:1280px;height:720px;box-sizing:border-box;background:#0F221A;display:flex;align-items:center;justify-content:center;border-radius:6px;overflow:hidden">
+          <div style="width:520px;background:#172E25;border:1px solid #2A463A;border-radius:20px;padding:44px 40px;display:flex;flex-direction:column;gap:26px;box-shadow:0 24px 60px rgba(0,0,0,.45)">
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:center">
+              <h3 style="margin:0;font:800 58px/1 Archivo,sans-serif;letter-spacing:-0.03em;color:#F2EFE6">Bank or Bust</h3>
+              <span style="font:500 13px/1 Archivo,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#D8A23A">Push your luck</span>
+            </div>
+            <input placeholder="Username" style="font:400 18px/1 Archivo,sans-serif;color:#F2EFE6;background:#0E1D18;border:2px solid #2C4A3D;border-radius:10px;padding:16px 18px;outline:none;width:100%;box-sizing:border-box" style-focus="border-color:#D8A23A">
+            <button style="font:700 19px/1 Archivo,sans-serif;color:#0F221A;background:#D8A23A;border:none;border-radius:10px;padding:17px;cursor:pointer;width:100%" style-hover="background:#EBB752">Create Room</button>
+            <div style="display:flex;align-items:center;gap:14px">
+              <span style="flex:1;height:1px;background:#2A463A"></span>
+              <span style="font:500 12px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">or join</span>
+              <span style="flex:1;height:1px;background:#2A463A"></span>
+            </div>
+            <div style="display:flex;gap:12px">
+              <input value="" placeholder="CODE" maxlength="4" style="font:700 22px/1 'JetBrains Mono',monospace;letter-spacing:.3em;text-align:center;color:#F2EFE6;background:#0E1D18;border:2px solid #2C4A3D;border-radius:10px;padding:15px 18px;outline:none;flex:1;min-width:0" style-focus="border-color:#D8A23A">
+              <button style="font:700 18px/1 Archivo,sans-serif;color:#C9D6CD;background:transparent;border:2px solid #2C4A3D;border-radius:10px;padding:14px 24px;cursor:pointer;white-space:nowrap" style-hover="border-color:#45705C;background:#1D362C">Join Room</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:500 13px/1 Archivo,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8FA69A">02 — Lobby</span>
+        <div style="width:1280px;height:720px;box-sizing:border-box;background:#0F221A;display:grid;grid-template-columns:1fr 320px;gap:20px;padding:28px;border-radius:6px;overflow:hidden">
+          <div style="background:#172E25;border:1px solid #2A463A;border-radius:20px;padding:36px;display:flex;flex-direction:column;gap:28px">
+            <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+              <span style="font:500 13px/1 Archivo,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#8FA69A">Room code</span>
+              <span style="font:700 76px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#D8A23A">MJYM</span>
+            </div>
+            <div style="height:1px;background:#2A463A"></div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font:500 13px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">Players · 2</span>
+              <sc-for list="{{ lobbyPlayers }}" as="p" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:14px;background:#1C352B;border:1px solid #264035;border-left:4px solid {{ p.color }};border-radius:10px;padding:14px 18px">
+                  <span style="font:500 19px/1 Archivo,sans-serif;color:#F2EFE6">{{ p.name }}</span>
+                  <span style="font:500 11px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:{{ p.tagColor }}">{{ p.tag }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="flex:1"></div>
+            <button style="font:700 19px/1 Archivo,sans-serif;color:#0F221A;background:#D8A23A;border:none;border-radius:10px;padding:18px;cursor:pointer;width:100%" style-hover="background:#EBB752">Start Game</button>
+          </div>
+          <div style="background:#172E25;border:1px solid #2A463A;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:14px">
+            <span style="font:500 13px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">Chat</span>
+            <div style="flex:1;display:flex;flex-direction:column;gap:12px;justify-content:flex-end">
+              <sc-for list="{{ chat }}" as="m" hint-placeholder-count="3">
+                <div style="display:flex;flex-direction:column;gap:3px">
+                  <span style="font:500 13px/1 Archivo,sans-serif;color:{{ m.color }}">{{ m.name }}</span>
+                  <span style="font:400 15px/1.45 Archivo,sans-serif;color:#C9D6CD">{{ m.text }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:8px">
+              <input placeholder="Say something…" style="font:400 15px/1 Archivo,sans-serif;color:#F2EFE6;background:#0E1D18;border:2px solid #2C4A3D;border-radius:10px;padding:12px 14px;outline:none;flex:1;min-width:0" style-focus="border-color:#D8A23A">
+              <button style="font:700 14px/1 Archivo,sans-serif;color:#C9D6CD;background:transparent;border:2px solid #2C4A3D;border-radius:10px;padding:10px 16px;cursor:pointer" style-hover="border-color:#45705C;background:#1D362C">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <sc-for list="{{ gameScreens }}" as="s" hint-placeholder-count="4">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font:500 13px/1 Archivo,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8FA69A">{{ s.label }}</span>
+          <div style="width:1280px;height:720px;box-sizing:border-box;background:#0F221A;display:grid;grid-template-columns:250px 1fr 300px;gap:20px;padding:24px;border-radius:6px;overflow:hidden">
+
+            <div style="background:#172E25;border:1px solid #2A463A;border-radius:18px;padding:22px 20px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between">
+                <span style="font:500 13px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">Scoreboard</span>
+                <span style="font:400 12px/1 'JetBrains Mono',monospace;color:#8FA69A">/4000</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{ s.board }}" as="p" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;gap:12px;border-radius:10px;padding:13px 14px;background:{{ p.rowBg }};border:1px solid {{ p.rowBorder }};border-left:4px solid {{ p.color }}">
+                    <span style="font:500 17px/1 Archivo,sans-serif;color:{{ p.nameColor }};flex:1">{{ p.name }}</span>
+                    <span style="font:700 20px/1 'JetBrains Mono',monospace;color:{{ p.scoreColor }}">{{ p.score }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="background:#172E25;border:1px solid #2A463A;border-radius:18px;padding:40px 32px;display:flex;flex-direction:column;align-items:center;gap:0">
+              <span style="font:500 13px/1 Archivo,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#8FA69A">Now playing</span>
+              <span style="font:800 44px/1.1 Archivo,sans-serif;letter-spacing:-0.02em;color:{{ s.turnColor }};margin-top:10px">{{ s.turnName }}</span>
+
+              <div style="display:flex;align-items:flex-end;gap:44px;margin-top:34px">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+                  <span style="font:500 12px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">Live dice</span>
+                  <span style="font:700 34px/1 'JetBrains Mono',monospace;color:#F2EFE6">{{ s.liveDice }}</span>
+                </div>
+                <span style="width:1px;height:52px;background:#2A463A"></span>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+                  <span style="font:500 12px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">Round pot</span>
+                  <span style="font:700 56px/1 'JetBrains Mono',monospace;color:{{ s.potColor }}">{{ s.pot }}</span>
+                </div>
+              </div>
+
+              <div style="display:flex;gap:16px;margin-top:40px;min-height:104px;align-items:center">
+                <sc-for list="{{ s.dice }}" as="d" hint-placeholder-count="5">
+                  <div style="position:relative;width:88px;height:88px;border-radius:16px;box-sizing:border-box;padding:13px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:5px;background:{{ d.bg }};border:3px solid {{ d.border }};transform:{{ d.lift }};box-shadow:{{ d.shadow }}">
+                    <sc-for list="{{ d.cells }}" as="c" hint-placeholder-count="9">
+                      <span style="border-radius:50%;background:{{ c }}"></span>
+                    </sc-for>
+                    <sc-if value="{{ d.busted }}" hint-placeholder-val="{{ false }}">
+                      <span style="position:absolute;left:14px;right:14px;top:50%;height:6px;border-radius:3px;background:#B3372F;transform:translateY(-50%) rotate(45deg)"></span>
+                      <span style="position:absolute;left:14px;right:14px;top:50%;height:6px;border-radius:3px;background:#B3372F;transform:translateY(-50%) rotate(-45deg)"></span>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="display:flex;gap:14px;margin-top:36px">
+                <sc-for list="{{ s.buttons }}" as="b" hint-placeholder-count="2">
+                  <button style="font:700 19px/1 Archivo,sans-serif;border-radius:10px;padding:16px 34px;cursor:pointer;color:{{ b.color }};background:{{ b.bg }};border:2px solid {{ b.border }}">{{ b.label }}</button>
+                </sc-for>
+              </div>
+
+              <sc-if value="{{ s.message }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:34px;display:flex;flex-direction:column;align-items:center;gap:18px">
+                  <span style="font:500 17px/1.4 Archivo,sans-serif;color:#C9D6CD;background:#1C352B;border:1px solid #264035;border-radius:999px;padding:11px 22px">{{ s.message }}</span>
+                  <span style="font:500 12px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">Last turn</span>
+                  <div style="display:flex;gap:10px;opacity:.45">
+                    <sc-for list="{{ s.last }}" as="d" hint-placeholder-count="1">
+                      <div style="width:56px;height:56px;border-radius:11px;box-sizing:border-box;padding:9px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:3px;background:{{ d.bg }};border:2px solid {{ d.border }}">
+                        <sc-for list="{{ d.cells }}" as="c" hint-placeholder-count="9">
+                          <span style="border-radius:50%;background:{{ c }}"></span>
+                        </sc-for>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+
+            <div style="background:#172E25;border:1px solid #2A463A;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:14px">
+              <span style="font:500 13px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">Chat</span>
+              <div style="flex:1;display:flex;flex-direction:column;gap:12px;justify-content:flex-end">
+                <sc-for list="{{ chat }}" as="m" hint-placeholder-count="3">
+                  <div style="display:flex;flex-direction:column;gap:3px">
+                    <span style="font:500 13px/1 Archivo,sans-serif;color:{{ m.color }}">{{ m.name }}</span>
+                    <span style="font:400 15px/1.45 Archivo,sans-serif;color:#C9D6CD">{{ m.text }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:8px">
+                <input placeholder="Say something…" style="font:400 15px/1 Archivo,sans-serif;color:#F2EFE6;background:#0E1D18;border:2px solid #2C4A3D;border-radius:10px;padding:12px 14px;outline:none;flex:1;min-width:0" style-focus="border-color:#D8A23A">
+                <button style="font:700 14px/1 Archivo,sans-serif;color:#C9D6CD;background:transparent;border:2px solid #2C4A3D;border-radius:10px;padding:10px 16px;cursor:pointer" style-hover="border-color:#45705C;background:#1D362C">Send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:500 13px/1 Archivo,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8FA69A">08 — Final standings</span>
+        <div style="width:1280px;height:720px;box-sizing:border-box;background:#0F221A;display:flex;align-items:center;justify-content:center;border-radius:6px;overflow:hidden">
+          <div style="width:620px;background:#172E25;border:1px solid #2A463A;border-radius:20px;padding:44px 40px;display:flex;flex-direction:column;gap:30px;box-shadow:0 24px 60px rgba(0,0,0,.45)">
+            <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+              <span style="font:500 13px/1 Archivo,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#8FA69A">Final standings</span>
+              <span style="font:800 46px/1.05 Archivo,sans-serif;letter-spacing:-0.02em;color:#EF7264">alice wins</span>
+              <span style="font:400 17px/1.4 Archivo,sans-serif;color:#C9D6CD">4120 points · 11 turns · banked 9 of 11</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ standings }}" as="p" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:16px;border-radius:10px;padding:15px 18px;background:{{ p.rowBg }};border:1px solid {{ p.rowBorder }};border-left:4px solid {{ p.color }}">
+                  <span style="font:700 16px/1 'JetBrains Mono',monospace;color:#8FA69A;width:22px">{{ p.place }}</span>
+                  <span style="font:500 19px/1 Archivo,sans-serif;color:{{ p.nameColor }};flex:1">{{ p.name }}</span>
+                  <span style="font:700 24px/1 'JetBrains Mono',monospace;color:{{ p.scoreColor }}">{{ p.score }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:14px">
+              <button style="font:700 19px/1 Archivo,sans-serif;color:#0F221A;background:#D8A23A;border:none;border-radius:10px;padding:17px;cursor:pointer;flex:1" style-hover="background:#EBB752">Play Again</button>
+              <button style="font:700 18px/1 Archivo,sans-serif;color:#C9D6CD;background:transparent;border:2px solid #2C4A3D;border-radius:10px;padding:15px 26px;cursor:pointer" style-hover="border-color:#45705C;background:#1D362C">Leave Room</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px;max-width:900px">
+      <h2 style="margin:0;font:600 15px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8FA69A">Layout changes</h2>
+      <div style="display:flex;flex-direction:column;gap:12px;font:400 16px/1.6 Archivo,sans-serif;color:#C9D6CD">
+        <p style="margin:0">Columns at 1280: <span style="font-family:'JetBrains Mono',monospace;font-size:14px">250 / flexible / 300</span>, 20px gutters, 24px window margin. Below 1000px wide, drop the chat column to a collapsible strip and let the play area take the space; below 760px, stack scoreboard above the play area as a single horizontal row of name+score chips.</p>
+        <p style="margin:0">The play area now leads with a "Now playing" label and the player's name in <em>their</em> colour, so whose turn it is is legible from across the room. Live dice and round pot become two ledger figures side by side instead of two sentences, with the pot at 56px — it is the number the decision hangs on. The pot turns gold the moment it is non-zero and grey at zero, so "you have something to lose" is a colour change, not a reading task.</p>
+        <p style="margin:0">Scoreboard rows carry the player colour as a 4px left edge rather than a floating swatch, and the active row is filled and gold-ruled instead of marked with an arrow. Locked dice stay in the row in place, so the row reads left-to-right as history: locked gold, then live blanks.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1420,&quot;height&quot;:900}}">
+const C = {
+  bg: "#0F221A", panel: "#172E25", panelAlt: "#1C352B", border: "#2A463A",
+  ink: "#F2EFE6", ink2: "#C9D6CD", ink3: "#8FA69A", gold: "#D8A23A",
+  bust: "#B3372F", cold: "#52C7E8"
+};
+const PLAYERS = ["#EF7264","#F0A02E","#EFD34B","#63C97A","#4FC3E8","#7A8CF0","#B983F0","#F07FB4"];
+const LAYOUT = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+
+function die(state, face) {
+  const s = {
+    blank:   { bg: "#14291F", border: "#2C4A3D", pip: "transparent" },
+    normal:  { bg: "#F4F1E7", border: "#CFC8B5", pip: "#16291F" },
+    selected:{ bg: "#F4F1E7", border: C.cold, pip: "#16291F",
+               lift: "translateY(-8px)",
+               shadow: "0 0 0 4px rgba(82,199,232,.22), 0 12px 22px rgba(0,0,0,.4)" },
+    locked:  { bg: C.gold, border: "#F2CE78", pip: "#3B2A08" },
+    busted:  { bg: "#38130F", border: C.bust, pip: "transparent" }
+  }[state];
+  const on = (state === "blank" || state === "busted") ? [] : (LAYOUT[face] || []);
+  const cells = [];
+  for (let i = 0; i < 9; i++) cells.push(on.indexOf(i) >= 0 ? s.pip : "transparent");
+  return { bg: s.bg, border: s.border, cells, lift: s.lift || "none",
+           shadow: s.shadow || "none", busted: state === "busted" };
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    const board = (turnIdx, scores) => scores.map((sc, i) => ({
+      name: ["alice", "bob"][i],
+      score: String(sc),
+      color: PLAYERS[i],
+      rowBg: i === turnIdx ? C.panelAlt : "transparent",
+      rowBorder: i === turnIdx ? "#3A5C4B" : "#223B31",
+      nameColor: i === turnIdx ? C.ink : C.ink2,
+      scoreColor: i === turnIdx ? C.gold : C.ink2
+    }));
+    const btn = (label, kind) => ({
+      label,
+      bg: kind === "primary" ? C.gold : kind === "disabled" ? "#1B322A" : "transparent",
+      color: kind === "primary" ? "#0F221A" : kind === "disabled" ? "#5C7466" : C.ink2,
+      border: kind === "secondary" ? "#2C4A3D" : "transparent"
+    });
+
+    return {
+      palette: [
+        { name: "Table (bg)", hex: "#0F221A" },
+        { name: "Panel", hex: "#172E25" },
+        { name: "Panel raised", hex: "#1C352B" },
+        { name: "Panel border", hex: "#2A463A" },
+        { name: "Input well", hex: "#0E1D18" },
+        { name: "Text primary", hex: "#F2EFE6" },
+        { name: "Text secondary", hex: "#C9D6CD" },
+        { name: "Text muted", hex: "#8FA69A" },
+        { name: "Brass (CTA / money)", hex: "#D8A23A" },
+        { name: "Brass hover", hex: "#EBB752" },
+        { name: "Brass pressed", hex: "#BE8A28" },
+        { name: "Bust (danger)", hex: "#B3372F" },
+        { name: "Cold (selected)", hex: "#52C7E8" },
+        { name: "Disabled fill", hex: "#1B322A" }
+      ],
+      players8: PLAYERS.map(h => ({ hex: h })),
+      typeScale: [
+        { role: "Screen title", sample: "Bank or Bust", color: C.ink,
+          font: "800 44px/1 Archivo, sans-serif", spec: "Archivo 800 · 58px · ls −3%" },
+        { role: "Room code", sample: "MJYM", color: C.gold,
+          font: "700 40px/1 'JetBrains Mono', monospace", spec: "JetBrains Mono 700 · 76px · ls 14%" },
+        { role: "Turn name", sample: "alice", color: PLAYERS[0],
+          font: "800 32px/1 Archivo, sans-serif", spec: "Archivo 800 · 44px · ls −2% · player colour" },
+        { role: "Round pot", sample: "1250", color: C.gold,
+          font: "700 34px/1 'JetBrains Mono', monospace", spec: "JetBrains Mono 700 · 56px" },
+        { role: "Player name", sample: "bob", color: C.ink,
+          font: "500 19px/1 Archivo, sans-serif", spec: "Archivo 500 · 17–19px" },
+        { role: "Score", sample: "3400", color: C.ink2,
+          font: "700 20px/1 'JetBrains Mono', monospace", spec: "JetBrains Mono 700 · 20px" },
+        { role: "Section label", sample: "SCOREBOARD", color: C.ink3,
+          font: "500 13px/1 Archivo, sans-serif", spec: "Archivo 500 · 13px · caps · ls 16%" },
+        { role: "Body / status", sample: "alice banked 6 points.", color: C.ink2,
+          font: "400 17px/1.4 Archivo, sans-serif", spec: "Archivo 400 · 15–17px · lh 1.45" },
+        { role: "Button", sample: "Lock Selected", color: C.ink,
+          font: "700 19px/1 Archivo, sans-serif", spec: "Archivo 700 · 18–19px" }
+      ],
+      specDice: [
+        Object.assign(die("blank"), { label: "Blank", spec: "body #14291F\nborder 3px #2C4A3D\nno pips" }),
+        Object.assign(die("normal", 5), { label: "Normal", spec: "body #F4F1E7\nborder 3px #CFC8B5\npips #16291F ⌀12" }),
+        Object.assign(die("selected", 3), { label: "Selected", spec: "border 3px #52C7E8\n+4px glow @22%\nraised 8px" }),
+        Object.assign(die("locked", 4), { label: "Locked", spec: "body #D8A23A\nborder 3px #F2CE78\npips #3B2A08" }),
+        Object.assign(die("busted", 1), { label: "Busted", spec: "body #38130F\nborder 3px #B3372F\ncross 6px, 14px inset" })
+      ],
+      components: [
+        { name: "Panel", spec: "bg #172E25 · border 1px #2A463A\nradius 18 (20 on title/lobby)\npadding 22–36 · gutter 20\nshadow 0 24 60 rgba(0,0,0,.45) on modals only" },
+        { name: "Primary button", spec: "bg #D8A23A · text #0F221A\nradius 10 · padding 16×34 · Archivo 700 19\nhover #EBB752 · pressed #BE8A28 +1px\ndisabled bg #1B322A · text #5C7466" },
+        { name: "Secondary button", spec: "bg transparent · border 2px #2C4A3D\ntext #C9D6CD · radius 10 · padding 14×28\nhover border #45705C · bg #1D362C" },
+        { name: "Text input", spec: "bg #0E1D18 · border 2px #2C4A3D\nradius 10 · padding 14×16 · Archivo 400 17\nplaceholder #8FA69A · focus border #D8A23A\ncode field: JetBrains Mono 700 22, ls 30%, centred" },
+        { name: "Scoreboard row", spec: "radius 10 · padding 13×14\nleft edge 4px player colour\nactive: bg #1C352B, border #3A5C4B, score #D8A23A\nidle: transparent, border #223B31, score #C9D6CD" },
+        { name: "Chat line", spec: "name Archivo 500 13 in player colour\ntext Archivo 400 15 / 1.45 #C9D6CD\n12px between lines, 3px name→text" }
+      ],
+      lobbyPlayers: [
+        { name: "alice", color: PLAYERS[0], tag: "Host", tagColor: C.gold },
+        { name: "bob", color: PLAYERS[1], tag: "Ready", tagColor: C.ink3 }
+      ],
+      chat: [
+        { name: "alice", color: PLAYERS[0], text: "code is MJYM" },
+        { name: "bob", color: PLAYERS[1], text: "in. going for 4000 in three turns" },
+        { name: "alice", color: PLAYERS[0], text: "sure you are" }
+      ],
+      standings: [
+        { place: "1", name: "alice", score: "4120", color: PLAYERS[0], rowBg: C.panelAlt, rowBorder: "#3A5C4B", nameColor: C.ink, scoreColor: C.gold },
+        { place: "2", name: "bob", score: "3550", color: PLAYERS[1], rowBg: "transparent", rowBorder: "#223B31", nameColor: C.ink2, scoreColor: C.ink2 },
+        { place: "3", name: "cara", score: "2900", color: PLAYERS[2], rowBg: "transparent", rowBorder: "#223B31", nameColor: C.ink2, scoreColor: C.ink2 },
+        { place: "4", name: "dev", score: "1740", color: PLAYERS[3], rowBg: "transparent", rowBorder: "#223B31", nameColor: C.ink2, scoreColor: C.ink2 }
+      ],
+      gameScreens: [
+        { label: "03 — Turn start", turnName: "alice", turnColor: PLAYERS[0],
+          liveDice: "5", pot: "0", potColor: C.ink3,
+          dice: [die("blank"), die("blank"), die("blank"), die("blank"), die("blank")],
+          buttons: [btn("Roll", "primary"), btn("Bank", "secondary")],
+          board: board(0, [0, 0]), message: false, last: [] },
+        { label: "04 — After roll", turnName: "alice", turnColor: PLAYERS[0],
+          liveDice: "4", pot: "0", potColor: C.ink3,
+          dice: [die("normal", 3), die("selected", 4), die("normal", 6), die("busted", 1), die("normal", 5)],
+          buttons: [btn("Lock Selected", "primary")],
+          board: board(0, [0, 0]), message: false, last: [] },
+        { label: "06 — Dice locked", turnName: "alice", turnColor: PLAYERS[0],
+          liveDice: "2", pot: "7", potColor: C.gold,
+          dice: [die("locked", 3), die("locked", 4), die("blank"), die("blank")],
+          buttons: [btn("Roll", "primary"), btn("Bank", "secondary")],
+          board: board(0, [0, 0]), message: false, last: [] },
+        { label: "07 — Turn handover", turnName: "bob", turnColor: PLAYERS[1],
+          liveDice: "5", pot: "0", potColor: C.ink3,
+          dice: [die("blank"), die("blank"), die("blank"), die("blank"), die("blank")],
+          buttons: [btn("Roll", "disabled"), btn("Bank", "disabled")],
+          board: board(1, [6, 0]), message: "alice banked 6 points.",
+          last: [die("locked", 6)] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
