@@ -2,7 +2,9 @@
 .godot/
 *.translation
 export.cfg
-export_presets.cfg
+
+# Exported web build output
+build/
 
 # Python
 __pycache__/

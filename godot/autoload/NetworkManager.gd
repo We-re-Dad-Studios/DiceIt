@@ -15,6 +15,7 @@ signal player_left(player_id: String)
 
 signal game_state_received(payload: Dictionary)
 signal action_received(payload: Dictionary, from_id: String)
+signal chat_received(entry: Dictionary)
 
 const PLAYER_COLORS: Array[Color] = [
 	Color("e63946"), # red
@@ -27,7 +28,7 @@ const PLAYER_COLORS: Array[Color] = [
 	Color("ff70a6"), # pink
 ]
 
-var default_relay_url := "ws://127.0.0.1:8765"
+var default_relay_url := "wss://diceit-pjz7.onrender.com"
 
 var _socket: WebSocketPeer
 var _pending_username := ""
@@ -40,6 +41,25 @@ var color_index := 0
 var is_host := false
 var players: Array = [] # [{id, username, color_index}]
 var host_id := ""
+var last_game_state: Dictionary = {}
+var chat_log: Array = [] # [{username, color_index, text}], newest last
+
+
+func _ready() -> void:
+	# On web, ?relay=ws://host:port overrides the built-in default, so a link
+	# can point players at a specific relay without a rebuild.
+	if OS.has_feature("web") and JavaScriptBridge.get_interface("window") != null:
+		var search: String = str(JavaScriptBridge.eval("window.location.search", true))
+		var marker := "relay="
+		var at := search.find(marker)
+		if at != -1:
+			var raw := search.substr(at + marker.length())
+			var amp := raw.find("&")
+			if amp != -1:
+				raw = raw.substr(0, amp)
+			var decoded: String = str(JavaScriptBridge.eval("decodeURIComponent('%s')" % raw, true))
+			if not decoded.is_empty():
+				default_relay_url = decoded
 
 
 func _process(_delta: float) -> void:
@@ -116,6 +136,13 @@ func send_action(payload: Dictionary) -> void:
 	_send({"type": "action", "payload": payload})
 
 
+func send_chat(text: String) -> void:
+	var trimmed := text.strip_edges()
+	if trimmed.is_empty():
+		return
+	_send({"type": "chat", "text": trimmed})
+
+
 func leave_room() -> void:
 	if _socket != null:
 		_socket.close()
@@ -125,6 +152,8 @@ func leave_room() -> void:
 	is_host = false
 	players = []
 	host_id = ""
+	last_game_state = {}
+	chat_log = []
 
 
 func get_player_color(idx: int) -> Color:
@@ -163,9 +192,20 @@ func _handle_message(raw: String) -> void:
 			is_host = (host_id == player_id)
 			lobby_updated.emit(players, host_id)
 		"game_state":
-			game_state_received.emit(data.get("payload", {}))
+			last_game_state = data.get("payload", {})
+			game_state_received.emit(last_game_state)
 		"action":
 			action_received.emit(data.get("payload", {}), data.get("from", ""))
+		"chat":
+			var entry := {
+				"username": data.get("username", "Player"),
+				"color_index": data.get("color_index", 0),
+				"text": data.get("text", ""),
+			}
+			chat_log.append(entry)
+			if chat_log.size() > 50:
+				chat_log.pop_front()
+			chat_received.emit(entry)
 		"player_left":
 			player_left.emit(data.get("player_id", ""))
 		"error":

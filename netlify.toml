@@ -1,0 +1,15 @@
+[build]
+  publish = "build/web"
+
+# The web build is exported without thread support, so it needs no
+# cross-origin isolation headers. Long-cache the big wasm/pck payloads but
+# always revalidate the entry point so new deploys are picked up.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/*.wasm"
+  [headers.values]
+    Content-Type = "application/wasm"

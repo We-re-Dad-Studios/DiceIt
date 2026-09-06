@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://cx1game00000"]
+[gd_scene load_steps=3 format=3 uid="uid://cx1game00000"]
 
 [ext_resource type="Script" path="res://scenes/Game.gd" id="1"]
+[ext_resource type="Script" path="res://scenes/ChatPanel.gd" id="2"]
 
 [node name="Game" type="Control"]
 layout_mode=3
@@ -119,6 +120,68 @@ layout_mode=2
 text=""
 horizontal_alignment=1
 autowrap_mode=2
+
+[node name="LastTurnLabel" type="Label" parent="Margin/HBox/CenterPanel/CenterMargin/CenterVBox"]
+unique_name_in_owner=true
+visible=false
+layout_mode=2
+text="Last turn"
+horizontal_alignment=1
+theme_override_font_sizes/font_size=12
+
+[node name="LastTurnRow" type="HBoxContainer" parent="Margin/HBox/CenterPanel/CenterMargin/CenterVBox"]
+unique_name_in_owner=true
+layout_mode=2
+alignment=1
+theme_override_constants/separation=8
+
+[node name="RightPanel" type="PanelContainer" parent="Margin/HBox"]
+layout_mode=2
+custom_minimum_size=Vector2(280, 0)
+
+[node name="ChatMargin" type="MarginContainer" parent="Margin/HBox/RightPanel"]
+layout_mode=2
+theme_override_constants/margin_left=12
+theme_override_constants/margin_top=12
+theme_override_constants/margin_right=12
+theme_override_constants/margin_bottom=12
+
+[node name="ChatBox" type="VBoxContainer" parent="Margin/HBox/RightPanel/ChatMargin"]
+layout_mode=2
+theme_override_constants/separation=8
+script=ExtResource("2")
+
+[node name="ChatTitle" type="Label" parent="Margin/HBox/RightPanel/ChatMargin/ChatBox"]
+layout_mode=2
+theme_override_font_sizes/font_size=18
+text="Chat"
+
+[node name="ChatScroll" type="ScrollContainer" parent="Margin/HBox/RightPanel/ChatMargin/ChatBox"]
+unique_name_in_owner=true
+layout_mode=2
+size_flags_vertical=3
+
+[node name="ChatLog" type="VBoxContainer" parent="Margin/HBox/RightPanel/ChatMargin/ChatBox/ChatScroll"]
+unique_name_in_owner=true
+layout_mode=2
+size_flags_horizontal=3
+theme_override_constants/separation=4
+
+[node name="ChatRow" type="HBoxContainer" parent="Margin/HBox/RightPanel/ChatMargin/ChatBox"]
+layout_mode=2
+theme_override_constants/separation=6
+
+[node name="ChatInput" type="LineEdit" parent="Margin/HBox/RightPanel/ChatMargin/ChatBox/ChatRow"]
+unique_name_in_owner=true
+layout_mode=2
+size_flags_horizontal=3
+placeholder_text="Say something..."
+max_length=300
+
+[node name="ChatSendButton" type="Button" parent="Margin/HBox/RightPanel/ChatMargin/ChatBox/ChatRow"]
+unique_name_in_owner=true
+layout_mode=2
+text="Send"
 
 [node name="GameOverPanel" type="PanelContainer" parent="."]
 unique_name_in_owner=true

@@ -146,6 +146,29 @@ async def handle_game_state(ws, data):
     await broadcast(room, {"type": "game_state", "payload": data.get("payload", {})}, exclude_id=player_id)
 
 
+async def handle_chat(ws, data):
+    entry = socket_to_room.get(ws)
+    if entry is None:
+        return
+    code, player_id = entry
+    room = rooms.get(code)
+    if room is None:
+        return
+    player = room.players.get(player_id)
+    if player is None:
+        return
+    text = str(data.get("text", ""))[:300]
+    if not text.strip():
+        return
+    await broadcast(room, {
+        "type": "chat",
+        "player_id": player.id,
+        "username": player.username,
+        "color_index": player.color_index,
+        "text": text,
+    })
+
+
 async def handle_action(ws, data):
     entry = socket_to_room.get(ws)
     if entry is None:
@@ -187,6 +210,7 @@ HANDLERS = {
     "join_room": handle_join_room,
     "game_state": handle_game_state,
     "action": handle_action,
+    "chat": handle_chat,
 }
 
 

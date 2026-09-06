@@ -22,6 +22,38 @@ roll, choose which dice to lock in, bank your points or push your luck.
 4. One instance clicks **Create Room**, the others enter that room code
    and click **Join Room**. Host clicks **Start Game** once everyone's in.
 
+## Playing in a browser
+
+The game exports to web, so players just open a link — no download.
+
+Build it:
+
+```bash
+cd godot && "/c/Program Files/Godot/godot.exe" --headless --export-release "Web" ../build/web/index.html
+```
+
+Test it locally:
+
+```bash
+cd build/web && python -m http.server 8080
+```
+
+Then open `http://localhost:8080/index.html`. Add `?relay=ws://127.0.0.1:8765`
+to point at a local relay instead of the deployed one — handy while developing.
+
+### Deploying to Netlify
+
+The exported build is plain static files, so Netlify hosts it happily. The
+`index.wasm` is ~39 MB, which is why `build/` stays out of git — deploy the
+folder directly rather than committing it:
+
+- **Easiest:** drag the `build/web` folder onto the Netlify dashboard
+  (netlify.com → "Add new site" → "Deploy manually").
+- **Or with the CLI:** `npx netlify-cli deploy --prod --dir=build/web`
+
+Re-run the export and re-deploy whenever you change the game. The relay server
+is separate and keeps running on Render — Netlify only serves the client.
+
 ## Rules (v1)
 
 - Each round starts with 5 live dice.
@@ -32,7 +64,11 @@ roll, choose which dice to lock in, bank your points or push your luck.
   anything from it, the whole round pot is lost.
 - With at least one live die left, reroll or bank (add the pot to your
   score and pass the turn).
-- First to 4000 points wins.
+- **The game ends when someone reaches 4000 points** (`TARGET_SCORE` in
+  `godot/autoload/GameState.gd`) — they win immediately and a game-over panel
+  shows the final standings.
+
+There's also a room chat, shared between the lobby and the game.
 
 Cut from v1: the between-round shop/modifiers and persisted high scores —
 see the original design doc for that scope if it gets added back later.

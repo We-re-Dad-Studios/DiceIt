@@ -9,6 +9,8 @@ extends Control
 @onready var lock_button: Button = %LockButton
 @onready var bank_button: Button = %BankButton
 @onready var message_label: Label = %MessageLabel
+@onready var last_turn_label: Label = %LastTurnLabel
+@onready var last_turn_row: HBoxContainer = %LastTurnRow
 @onready var game_over_panel: PanelContainer = %GameOverPanel
 @onready var winner_label: Label = %WinnerLabel
 @onready var back_to_title_button: Button = %BackToTitleButton
@@ -28,9 +30,15 @@ func _ready() -> void:
 		GameState.state_changed.connect(_on_host_state_changed)
 		NetworkManager.action_received.connect(_on_action_received_as_host)
 		_render(GameState.to_payload())
+		# Re-broadcast in case a joiner's scene transition raced the first
+		# broadcast sent from Lobby.gd and missed it.
+		NetworkManager.send_game_state(GameState.to_payload())
 	else:
 		NetworkManager.game_state_received.connect(_on_client_state_received)
-		_render(GameState.to_payload()) # placeholder until first broadcast arrives
+		if not NetworkManager.last_game_state.is_empty():
+			_render(NetworkManager.last_game_state)
+		else:
+			_render(GameState.to_payload()) # placeholder until first broadcast arrives
 
 
 func _on_host_state_changed(payload: Dictionary) -> void:
@@ -141,28 +149,51 @@ func _render_dice() -> void:
 	selected_indices = []
 
 	var phase: String = state.get("phase", "")
-	if phase != "await_choice":
-		return
-
-	var last_roll: Array = state.get("last_roll", [])
 	var my_turn := _is_my_turn()
+	var locked_values: Array = state.get("locked_dice", [])
 
-	for i in range(last_roll.size()):
-		var entry: Dictionary = last_roll[i]
-		var value: int = entry.get("value", 0)
-		var busted: bool = entry.get("busted", false)
+	for value in locked_values:
+		var die := DiceFace.new()
+		die.value = int(value)
+		die.face_state = "locked"
+		dice_row.add_child(die)
 
-		var btn := Button.new()
-		btn.text = str(value)
-		btn.custom_minimum_size = Vector2(48, 48)
-		btn.toggle_mode = true
-		btn.disabled = busted or not my_turn
-		if busted:
-			btn.modulate = Color(0.55, 0.55, 0.55)
-			btn.text = "%d (bust)" % value
-		var idx := i
-		btn.toggled.connect(func(pressed: bool): _on_die_toggled(idx, pressed))
-		dice_row.add_child(btn)
+	if phase == "await_choice":
+		var last_roll: Array = state.get("last_roll", [])
+		for i in range(last_roll.size()):
+			var entry: Dictionary = last_roll[i]
+			var die := DiceFace.new()
+			die.index = i
+			die.value = int(entry.get("value", 0))
+			var busted: bool = entry.get("busted", false)
+			if busted:
+				die.face_state = "busted"
+			else:
+				die.face_state = "selectable"
+				die.interactive = phase == "await_choice" and my_turn
+				die.toggled.connect(_on_die_toggled)
+			dice_row.add_child(die)
+	elif phase == "await_roll":
+		var blank_count: int = state.get("live_count", 0)
+		for i in range(blank_count):
+			var die := DiceFace.new()
+			die.face_state = "blank"
+			dice_row.add_child(die)
+
+	_render_last_turn(state.get("last_turn_dice", []))
+
+
+func _render_last_turn(dice: Array) -> void:
+	for child in last_turn_row.get_children():
+		child.queue_free()
+
+	last_turn_label.visible = not dice.is_empty()
+	for entry in dice:
+		var die := DiceFace.new()
+		die.value = int(entry.get("value", 0))
+		die.face_state = "busted" if entry.get("busted", false) else "locked"
+		die.modulate = Color(1, 1, 1, 0.55)
+		last_turn_row.add_child(die)
 
 
 func _on_die_toggled(idx: int, pressed: bool) -> void:

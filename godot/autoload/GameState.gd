@@ -7,7 +7,6 @@ signal state_changed(payload: Dictionary)
 
 const STARTING_DICE := 5
 const TARGET_SCORE := 4000
-const ROUND_LOST_DISPLAY_SECONDS := 1.6
 
 var players: Array = []       # [{id, username, color_index, score}]
 var turn_order: Array = []    # [player_id, ...]
@@ -15,12 +14,15 @@ var current_turn_index := 0
 
 var live_count := STARTING_DICE
 var last_roll: Array = []     # [{value:int, busted:bool}]
+var locked_dice: Array = []   # [int, ...] values locked in so far this round
 var round_pot := 0
 var phase := "lobby"          # lobby | await_roll | await_choice | round_lost | game_over
 var winner_id := ""
 var message := ""
 
-var _advancing := false
+## Dice from the turn that just ended, kept so the next state still shows what
+## happened (busted or banked) without needing a timed pause between turns.
+var last_turn_dice: Array = []
 
 
 func start_game(player_list: Array) -> void:
@@ -40,7 +42,7 @@ func start_game(player_list: Array) -> void:
 
 
 func apply_action(from_id: String, action: String, payload: Dictionary) -> void:
-	if phase == "game_over" or _advancing:
+	if phase == "game_over":
 		return
 	if from_id != current_player_id():
 		return # not this player's turn
@@ -73,6 +75,8 @@ func _find_player(pid: String) -> Dictionary:
 func _reset_turn() -> void:
 	live_count = STARTING_DICE
 	last_roll = []
+	locked_dice = []
+	last_turn_dice = []
 	round_pot = 0
 	phase = "await_roll"
 	message = ""
@@ -92,11 +96,9 @@ func _do_roll() -> void:
 
 	if busted_count == live_count:
 		# Every die still in play busted before anything from this roll locked in.
-		phase = "round_lost"
+		var lost := round_pot
 		round_pot = 0
-		message = "Busted! Lost the round."
-		_emit_state()
-		_advance_after_delay()
+		_advance_turn("%s busted and lost %d points." % [_current_username(), lost], results)
 		return
 
 	live_count -= busted_count
@@ -116,6 +118,7 @@ func _do_lock(indices: Array) -> void:
 			continue
 		locked_value += int(entry.get("value", 0))
 		locked_count += 1
+		locked_dice.append(int(entry.get("value", 0)))
 
 	round_pot += locked_value
 	live_count -= locked_count
@@ -132,27 +135,30 @@ func _do_lock(indices: Array) -> void:
 
 func _do_bank() -> void:
 	var player := _find_player(current_player_id())
+	var banked := round_pot
 	if not player.is_empty():
-		player["score"] += round_pot
-
-	message = "%s banked %d points." % [player.get("username", "Player"), round_pot]
+		player["score"] += banked
 
 	if player.get("score", 0) >= TARGET_SCORE:
 		phase = "game_over"
 		winner_id = player.get("id", "")
+		message = "%s banked %d points." % [player.get("username", "Player"), banked]
 		_emit_state()
 		return
 
-	_advance_after_delay()
+	var banked_faces: Array = locked_dice.map(func(v): return {"value": v, "busted": false})
+	_advance_turn("%s banked %d points." % [player.get("username", "Player"), banked], banked_faces)
 
 
-func _advance_after_delay() -> void:
-	_advancing = true
-	_emit_state()
-	await get_tree().create_timer(ROUND_LOST_DISPLAY_SECONDS).timeout
-	_advancing = false
+func _current_username() -> String:
+	return _find_player(current_player_id()).get("username", "Player")
+
+
+func _advance_turn(summary: String, closing_dice: Array) -> void:
 	current_turn_index = (current_turn_index + 1) % turn_order.size()
 	_reset_turn()
+	message = summary
+	last_turn_dice = closing_dice
 	_emit_state()
 
 
@@ -168,6 +174,8 @@ func to_payload() -> Dictionary:
 		"current_player_id": current_player_id(),
 		"live_count": live_count,
 		"last_roll": last_roll.duplicate(true),
+		"locked_dice": locked_dice.duplicate(true),
+		"last_turn_dice": last_turn_dice.duplicate(true),
 		"round_pot": round_pot,
 		"phase": phase,
 		"winner_id": winner_id,
