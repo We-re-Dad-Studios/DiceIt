@@ -9,6 +9,8 @@ signal disconnected
 
 signal room_created(code: String)
 signal room_joined(code: String)
+signal became_host
+signal player_rejoined(player_id: String)
 signal join_failed(message: String)
 signal lobby_updated(players: Array, host_id: String)
 signal player_left(player_id: String)
@@ -35,12 +37,63 @@ var last_game_state: Dictionary = {}
 var chat_log: Array = [] # [{username, color_index, text}], newest last
 
 
+const TOKEN_PATH := "user://seat_token.txt"
+const TOKEN_STORAGE_KEY := "bankorbust.seat"
+
+## Identifies this tab to the relay so a dropped connection can reclaim the
+## same seat, with its score, instead of arriving as a stranger. Stored per
+## tab (sessionStorage) rather than per browser, so it survives a reload but
+## two tabs of the same browser never fight over one seat.
+var seat_token := ""
+
+
 func _ready() -> void:
 	# On web, ?relay=ws://host:port overrides the built-in default, so a link
 	# can point players at a specific relay without a rebuild.
 	var relay := get_query_param("relay")
 	if not relay.is_empty():
 		default_relay_url = relay
+
+	seat_token = _load_or_create_token()
+
+
+func _load_or_create_token() -> String:
+	var stored := _read_stored_token()
+	if stored.length() >= 8:
+		return stored
+
+	var token := ""
+	for i in 4:
+		token += "%08x" % randi()
+	_write_stored_token(token)
+	return token
+
+
+func _read_stored_token() -> String:
+	if OS.has_feature("web") and JavaScriptBridge.get_interface("window") != null:
+		var value = JavaScriptBridge.eval(
+			"(function(){try{return window.sessionStorage.getItem('%s')||''}catch(e){return ''}})()" % TOKEN_STORAGE_KEY,
+			true
+		)
+		return str(value) if value != null else ""
+
+	if not FileAccess.file_exists(TOKEN_PATH):
+		return ""
+	var file := FileAccess.open(TOKEN_PATH, FileAccess.READ)
+	return file.get_as_text().strip_edges() if file != null else ""
+
+
+func _write_stored_token(token: String) -> void:
+	if OS.has_feature("web") and JavaScriptBridge.get_interface("window") != null:
+		JavaScriptBridge.eval(
+			"try{window.sessionStorage.setItem('%s','%s')}catch(e){}" % [TOKEN_STORAGE_KEY, token],
+			true
+		)
+		return
+
+	var file := FileAccess.open(TOKEN_PATH, FileAccess.WRITE)
+	if file != null:
+		file.store_string(token)
 
 
 ## A link that drops someone straight onto the title screen with this room's
@@ -134,9 +187,14 @@ func _await_open_then_send() -> void:
 	connected_to_relay.emit()
 
 	if _pending_action == "create":
-		_send({"type": "create_room", "username": _pending_username})
+		_send({"type": "create_room", "username": _pending_username, "token": seat_token})
 	elif _pending_action == "join":
-		_send({"type": "join_room", "code": _pending_code, "username": _pending_username})
+		_send({
+			"type": "join_room",
+			"code": _pending_code,
+			"username": _pending_username,
+			"token": seat_token,
+		})
 	_pending_action = ""
 
 
@@ -168,6 +226,19 @@ func leave_room() -> void:
 	chat_log = []
 
 
+## Takes the seat id the relay actually handed us and remembers it as this
+## client's token. Usually that is the token we asked for; when it is not -
+## two tabs of the same browser share one stored token, and the relay refuses
+## to hand over a seat someone is sitting in - we adopt the id we were given,
+## so this client owns a distinct seat it can reclaim after a reload.
+func _adopt_seat(assigned_id: String) -> void:
+	player_id = assigned_id
+	if assigned_id.is_empty() or assigned_id == seat_token:
+		return
+	seat_token = assigned_id
+	_write_stored_token(assigned_id)
+
+
 func get_player_color(idx: int) -> Color:
 	return Style.player_color(idx)
 
@@ -188,21 +259,25 @@ func _handle_message(raw: String) -> void:
 	match msg_type:
 		"room_created":
 			room_code = data.get("code", "")
-			player_id = data.get("player_id", "")
+			_adopt_seat(data.get("player_id", ""))
 			color_index = data.get("color_index", 0)
 			is_host = true
 			room_created.emit(room_code)
 		"room_joined":
 			room_code = data.get("code", "")
-			player_id = data.get("player_id", "")
+			_adopt_seat(data.get("player_id", ""))
 			color_index = data.get("color_index", 0)
 			is_host = false
 			room_joined.emit(room_code)
 		"lobby_update":
 			players = data.get("players", [])
 			host_id = data.get("host_id", "")
+			var was_host := is_host
 			is_host = (host_id == player_id)
 			lobby_updated.emit(players, host_id)
+			if is_host and not was_host:
+				# The relay promoted us because the previous host dropped.
+				became_host.emit()
 		"game_state":
 			last_game_state = data.get("payload", {})
 			game_state_received.emit(last_game_state)
@@ -220,5 +295,7 @@ func _handle_message(raw: String) -> void:
 			chat_received.emit(entry)
 		"player_left":
 			player_left.emit(data.get("player_id", ""))
+		"player_rejoined":
+			player_rejoined.emit(data.get("player_id", ""))
 		"error":
 			join_failed.emit(data.get("message", "Unknown error."))

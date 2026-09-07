@@ -35,6 +35,7 @@ func start_game(player_list: Array) -> void:
 			"score": 0,
 			"turns": 0,   # turns finished, for the final standings line
 			"banks": 0,   # of those, how many ended in a bank rather than a bust
+			"connected": true,
 		})
 	turn_order = players.map(func(p): return p["id"])
 	current_turn_index = 0
@@ -43,12 +44,61 @@ func start_game(player_list: Array) -> void:
 	_emit_state()
 
 
-## Host-only: deal a fresh game to the same players, keeping the room intact.
-func restart() -> void:
-	var roster: Array = players.map(func(p): return {
-		"id": p["id"], "username": p["username"], "color_index": p["color_index"],
-	})
+## Host-only: deal a fresh game, keeping the room intact. Pass the room's
+## current roster so anyone who joined mid-game (and has been spectating) is
+## dealt in, and anyone who left is dropped.
+func restart(roster: Array = []) -> void:
+	if roster.is_empty():
+		# Taken from the room rather than a client's request, so nobody can
+		# rewrite the table by sending a doctored roster.
+		roster = NetworkManager.players.filter(func(p): return bool(p.get("connected", true)))
+	if roster.is_empty():
+		roster = players.map(func(p): return {
+			"id": p["id"], "username": p["username"], "color_index": p["color_index"],
+		})
 	start_game(roster)
+
+
+## Host-only: take over an in-progress game from a state broadcast. Used when
+## the host drops and the relay promotes another player, who would otherwise
+## hold no game state and leave everyone stuck.
+func adopt(payload: Dictionary) -> void:
+	if payload.is_empty():
+		return
+	players = payload.get("players", []).duplicate(true)
+	turn_order = payload.get("turn_order", []).duplicate(true)
+	current_turn_index = int(payload.get("current_turn_index", 0))
+	live_count = int(payload.get("live_count", STARTING_DICE))
+	last_roll = payload.get("last_roll", []).duplicate(true)
+	locked_dice = payload.get("locked_dice", []).duplicate(true)
+	last_turn_dice = payload.get("last_turn_dice", []).duplicate(true)
+	round_pot = int(payload.get("round_pot", 0))
+	phase = str(payload.get("phase", "await_roll"))
+	winner_id = str(payload.get("winner_id", ""))
+	message = str(payload.get("message", ""))
+
+
+## Host-only: a player's connection dropped or came back. An absent player's
+## turn is forfeited rather than left to stall the table.
+func set_connected(pid: String, is_connected: bool) -> void:
+	var player := _find_player(pid)
+	if player.is_empty() or bool(player.get("connected", true)) == is_connected:
+		return
+	player["connected"] = is_connected
+
+	if is_connected or phase == "game_over" or turn_order.is_empty():
+		_emit_state()
+		return
+
+	if pid == current_player_id():
+		var lost := round_pot
+		round_pot = 0
+		var summary := "%s disconnected" % player.get("username", "Player")
+		if lost > 0:
+			summary += " and lost %d points" % lost
+		_advance_turn(summary + ".", [])
+	else:
+		_emit_state()
 
 
 func apply_action(from_id: String, action: String, payload: Dictionary) -> void:
@@ -177,11 +227,23 @@ func _current_username() -> String:
 
 
 func _advance_turn(summary: String, closing_dice: Array) -> void:
-	current_turn_index = (current_turn_index + 1) % turn_order.size()
+	current_turn_index = _next_present_index(current_turn_index)
 	_reset_turn()
 	message = summary
 	last_turn_dice = closing_dice
 	_emit_state()
+
+
+## The next seat whose player is still connected. Falls back to simply moving
+## along if nobody is, so a table of dropped players can never spin forever.
+func _next_present_index(from_index: int) -> int:
+	var count := turn_order.size()
+	for step in range(1, count + 1):
+		var candidate := (from_index + step) % count
+		var player := _find_player(turn_order[candidate])
+		if player.is_empty() or bool(player.get("connected", true)):
+			return candidate
+	return (from_index + 1) % count
 
 
 func _emit_state() -> void:

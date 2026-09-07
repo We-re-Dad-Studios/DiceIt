@@ -3,6 +3,10 @@
 *.translation
 export.cfg
 
+# Godot still emits its boot splash on export, but web/shell.html draws its own
+# loading screen and never references it.
+build/web/index.png
+
 # The exported web build is committed on purpose: Netlify deploys this repo
 # straight from git with no build step, since its build image has no Godot.
 # Re-export before pushing if you changed anything under godot/.

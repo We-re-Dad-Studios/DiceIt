@@ -12,6 +12,8 @@ extends Control
 @onready var line_right: Panel = %LineRight
 @onready var status_label: Label = %StatusLabel
 
+var _leaving := false
+
 
 func _ready() -> void:
 	_apply_style()
@@ -151,4 +153,13 @@ func _on_join_failed(message: String) -> void:
 
 
 func _on_room_ready(_code: String) -> void:
-	get_tree().change_scene_to_file("res://scenes/Lobby.tscn")
+	_change_scene("res://scenes/Lobby.tscn")
+
+
+## Guards against leaving twice: signals from the autoloads can arrive after a
+## transition is already queued, and get_tree() is null once we are detached.
+func _change_scene(path: String) -> void:
+	if _leaving or not is_inside_tree():
+		return
+	_leaving = true
+	get_tree().change_scene_to_file.call_deferred(path)

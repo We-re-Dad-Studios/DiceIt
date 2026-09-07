@@ -10,6 +10,8 @@ extends Control
 @onready var hint_label: Label = %HintLabel
 @onready var chat_panel_container: PanelContainer = %ChatPanelContainer
 
+var _leaving := false
+
 
 func _ready() -> void:
 	_apply_style()
@@ -65,7 +67,10 @@ func _on_lobby_updated(players: Array, host_id: String) -> void:
 	_refresh(players, host_id)
 
 
-func _refresh(players: Array, host_id: String) -> void:
+func _refresh(all_players: Array, host_id: String) -> void:
+	# Seats are held for players who dropped, but the lobby only lists who is
+	# actually here to start a game.
+	var players: Array = all_players.filter(func(p): return bool(p.get("connected", true)))
 	players_caption.text = Style.spaced_caps("PLAYERS · %d" % players.size())
 
 	for child in player_list.get_children():
@@ -126,15 +131,26 @@ func _player_row(p: Dictionary, host_id: String) -> PanelContainer:
 func _on_start_pressed() -> void:
 	if not NetworkManager.is_host:
 		return
-	GameState.start_game(NetworkManager.players)
+	GameState.start_game(
+		NetworkManager.players.filter(func(p): return bool(p.get("connected", true)))
+	)
 	NetworkManager.send_game_state(GameState.to_payload())
 	get_tree().change_scene_to_file("res://scenes/Game.tscn")
 
 
 func _on_game_state_received(_payload: Dictionary) -> void:
 	# A non-host player follows the host into the game.
-	get_tree().change_scene_to_file("res://scenes/Game.tscn")
+	_change_scene("res://scenes/Game.tscn")
 
 
 func _on_disconnected() -> void:
-	get_tree().change_scene_to_file("res://scenes/Title.tscn")
+	_change_scene("res://scenes/Title.tscn")
+
+
+## The host broadcasts state on every room change, so this can fire more than
+## once. Leaving twice tears the scene out from under the second call.
+func _change_scene(path: String) -> void:
+	if _leaving or not is_inside_tree():
+		return
+	_leaving = true
+	get_tree().change_scene_to_file.call_deferred(path)

@@ -44,15 +44,24 @@ class Player:
         self.color_index = color_index
         self.ws = ws
 
+    @property
+    def connected(self):
+        return self.ws is not None
+
     def to_dict(self):
-        return {"id": self.id, "username": self.username, "color_index": self.color_index}
+        return {
+            "id": self.id,
+            "username": self.username,
+            "color_index": self.color_index,
+            "connected": self.connected,
+        }
 
 
 class Room:
     def __init__(self, code, host_id):
         self.code = code
         self.host_id = host_id
-        self.players = {}  # id -> Player
+        self.players = {}  # id -> Player, including seats whose player dropped
 
     def next_color_index(self):
         used = {p.color_index for p in self.players.values()}
@@ -60,6 +69,9 @@ class Room:
             if i not in used:
                 return i
         return len(self.players) % COLOR_COUNT
+
+    def connected_players(self):
+        return [p for p in self.players.values() if p.connected]
 
     def lobby_update_message(self):
         return {
@@ -81,6 +93,8 @@ def generate_room_code():
 
 
 async def send(ws, message):
+    if ws is None:
+        return
     try:
         await ws.send(json.dumps(message))
     except websockets.exceptions.ConnectionClosed:
@@ -93,10 +107,19 @@ async def broadcast(room, message, exclude_id=None):
             await send(player.ws, message)
 
 
+def sanitize_token(raw):
+    """A client-supplied seat token. Random and never displayed, so it works as
+    a bearer token for reclaiming a seat after a dropped connection."""
+    token = str(raw or "")
+    if 8 <= len(token) <= 64 and all(c in string.hexdigits for c in token):
+        return token
+    return None
+
+
 async def handle_create_room(ws, data):
     username = str(data.get("username", "Player"))[:20]
     code = generate_room_code()
-    player_id = uuid.uuid4().hex[:8]
+    player_id = sanitize_token(data.get("token")) or uuid.uuid4().hex[:8]
     room = Room(code, host_id=player_id)
     player = Player(player_id, username, 0, ws)
     room.players[player_id] = player
@@ -120,7 +143,29 @@ async def handle_join_room(ws, data):
         await send(ws, {"type": "error", "message": "Room not found."})
         return
 
-    player_id = uuid.uuid4().hex[:8]
+    # Reclaiming a seat after a dropped connection: same id, same colour, and
+    # the host's game state still has the player's score waiting. Only seats
+    # that are actually vacant can be reclaimed, so an active player cannot be
+    # kicked off by someone replaying their token.
+    token = sanitize_token(data.get("token"))
+    existing = room.players.get(token) if token else None
+    if existing is not None and not existing.connected:
+        existing.ws = ws
+        existing.username = username or existing.username
+        socket_to_room[ws] = (code, existing.id)
+
+        await send(ws, {
+            "type": "room_joined",
+            "code": code,
+            "player_id": existing.id,
+            "color_index": existing.color_index,
+            "reclaimed": True,
+        })
+        await broadcast(room, {"type": "player_rejoined", "player_id": existing.id})
+        await broadcast(room, room.lobby_update_message())
+        return
+
+    player_id = token if (token and token not in room.players) else uuid.uuid4().hex[:8]
     color_index = room.next_color_index()
     player = Player(player_id, username, color_index, ws)
     room.players[player_id] = player
@@ -131,6 +176,7 @@ async def handle_join_room(ws, data):
         "code": code,
         "player_id": player_id,
         "color_index": color_index,
+        "reclaimed": False,
     })
     await broadcast(room, room.lobby_update_message())
 
@@ -184,6 +230,8 @@ async def handle_action(ws, data):
 
 
 async def remove_player(ws):
+    """A dropped connection vacates the seat but does not destroy it, so the
+    player can reclaim it (score intact) by rejoining with the same token."""
     entry = socket_to_room.pop(ws, None)
     if entry is None:
         return
@@ -191,15 +239,21 @@ async def remove_player(ws):
     room = rooms.get(code)
     if room is None:
         return
-    room.players.pop(player_id, None)
 
-    if not room.players:
+    player = room.players.get(player_id)
+    if player is None:
+        return
+    player.ws = None
+
+    remaining = room.connected_players()
+    if not remaining:
+        # Nobody left to hold the room open; the seats go with it.
         rooms.pop(code, None)
         return
 
     if player_id == room.host_id:
-        # Host left: promote the earliest-joined remaining player.
-        room.host_id = next(iter(room.players))
+        # The host runs the game logic, so it has to move to someone present.
+        room.host_id = remaining[0].id
 
     await broadcast(room, {"type": "player_left", "player_id": player_id})
     await broadcast(room, room.lobby_update_message())

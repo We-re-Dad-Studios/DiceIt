@@ -44,6 +44,7 @@ const LAST_TURN_SCALE := 0.64
 
 var state: Dictionary = {}
 var selected_indices: Array = []
+var _leaving := false
 
 
 func _ready() -> void:
@@ -56,19 +57,25 @@ func _ready() -> void:
 	leave_button.pressed.connect(_on_leave_pressed)
 	NetworkManager.disconnected.connect(_on_disconnected)
 
+	# Every client wires up both roles: the relay promotes a new host if the
+	# current one drops, so any player may have to take over mid-game.
+	GameState.state_changed.connect(_on_host_state_changed)
+	NetworkManager.action_received.connect(_on_action_received_as_host)
+	NetworkManager.game_state_received.connect(_on_client_state_received)
+	NetworkManager.became_host.connect(_on_became_host)
+	NetworkManager.player_left.connect(_on_player_left)
+	NetworkManager.player_rejoined.connect(_on_player_rejoined)
+	NetworkManager.lobby_updated.connect(_on_lobby_updated)
+
 	if NetworkManager.is_host:
-		GameState.state_changed.connect(_on_host_state_changed)
-		NetworkManager.action_received.connect(_on_action_received_as_host)
 		_render(GameState.to_payload())
 		# Re-broadcast in case a joiner's scene change raced the first
 		# broadcast sent from the lobby and missed it.
 		NetworkManager.send_game_state(GameState.to_payload())
+	elif not NetworkManager.last_game_state.is_empty():
+		_render(NetworkManager.last_game_state)
 	else:
-		NetworkManager.game_state_received.connect(_on_client_state_received)
-		if not NetworkManager.last_game_state.is_empty():
-			_render(NetworkManager.last_game_state)
-		else:
-			_render(GameState.to_payload())
+		_render(GameState.to_payload())
 
 
 # --- Styling ---------------------------------------------------------------
@@ -178,6 +185,8 @@ func _gap_before(before: Control, height: int) -> void:
 # --- Networking glue -------------------------------------------------------
 
 func _on_host_state_changed(payload: Dictionary) -> void:
+	if not NetworkManager.is_host:
+		return
 	_render(payload)
 	NetworkManager.send_game_state(payload)
 
@@ -187,7 +196,37 @@ func _on_client_state_received(payload: Dictionary) -> void:
 
 
 func _on_action_received_as_host(payload: Dictionary, from_id: String) -> void:
+	if not NetworkManager.is_host:
+		return
 	GameState.apply_action(from_id, payload.get("action", ""), payload)
+
+
+## Promoted because the previous host dropped. The last broadcast we received
+## is the game, so adopt it and carry on refereeing from here.
+func _on_became_host() -> void:
+	# `state` is the last state we rendered, from whichever source.
+	GameState.adopt(state)
+	# The old host's absence still has to be accounted for.
+	for p in NetworkManager.players:
+		GameState.set_connected(p.get("id", ""), bool(p.get("connected", true)))
+	NetworkManager.send_game_state(GameState.to_payload())
+
+
+func _on_player_left(pid: String) -> void:
+	if NetworkManager.is_host:
+		GameState.set_connected(pid, false)
+
+
+func _on_player_rejoined(pid: String) -> void:
+	if NetworkManager.is_host:
+		GameState.set_connected(pid, true)
+
+
+## Anyone arriving mid-game is still sitting on the lobby screen until a state
+## broadcast reaches them, so the host answers every room change with one.
+func _on_lobby_updated(_players: Array, _host_id: String) -> void:
+	if NetworkManager.is_host:
+		NetworkManager.send_game_state(GameState.to_payload())
 
 
 func _is_my_turn() -> bool:
@@ -223,11 +262,11 @@ func _on_play_again_pressed() -> void:
 
 func _on_leave_pressed() -> void:
 	NetworkManager.leave_room()
-	get_tree().change_scene_to_file("res://scenes/Title.tscn")
+	_change_scene("res://scenes/Title.tscn")
 
 
 func _on_disconnected() -> void:
-	get_tree().change_scene_to_file("res://scenes/Title.tscn")
+	_change_scene("res://scenes/Title.tscn")
 
 
 # --- Rendering -------------------------------------------------------------
@@ -251,6 +290,14 @@ func _player_by_id(pid: String) -> Dictionary:
 	return {}
 
 
+## True when this client is in the room but not in this game's roster - i.e.
+## they joined after it started.
+func _is_spectator() -> bool:
+	if state.get("players", []).is_empty():
+		return false
+	return _player_by_id(NetworkManager.player_id).is_empty()
+
+
 ## Active row is filled and gold-ruled; idle rows are transparent. The player
 ## colour rides the left edge in both cases.
 func _render_scoreboard() -> void:
@@ -269,16 +316,19 @@ func _render_scoreboard() -> void:
 		)
 		var content: HBoxContainer = row["content"]
 
+		var present: bool = bool(p.get("connected", true))
 		var name_label := Label.new()
-		name_label.text = p.get("username", "Player")
+		name_label.text = p.get("username", "Player") if present else "%s (away)" % p.get("username", "Player")
 		name_label.add_theme_font_override("font", Style.archivo_500)
 		name_label.add_theme_font_size_override("font_size", 17)
 		name_label.add_theme_color_override("font_color", Style.INK if is_current else Style.INK2)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		content.add_child(name_label)
+		if not present:
+			row["root"].modulate = Color(1, 1, 1, 0.45)
 
 		var score_label := Label.new()
-		score_label.text = str(p.get("score", 0))
+		score_label.text = str(int(p.get("score", 0)))
 		score_label.add_theme_font_override("font", Style.mono_700)
 		score_label.add_theme_font_size_override("font_size", 20)
 		score_label.add_theme_color_override("font_color", Style.GOLD if is_current else Style.INK2)
@@ -294,14 +344,18 @@ func _render_turn_info() -> void:
 		"font_color", Style.player_color(current.get("color_index", 0))
 	)
 
-	live_count_label.text = str(state.get("live_count", 0))
+	live_count_label.text = str(int(state.get("live_count", 0)))
 
 	# Gold the moment there's something to lose, grey when there isn't.
 	var pot: int = state.get("round_pot", 0)
 	pot_label.text = str(pot)
 	pot_label.add_theme_color_override("font_color", Style.GOLD if pot > 0 else Style.INK3)
 
+	# Someone who joined after the deal has no seat this game. Say so, rather
+	# than leaving them staring at buttons that will never enable.
 	var message: String = state.get("message", "")
+	if _is_spectator():
+		message = "Spectating - you'll be dealt in next game."
 	message_row.visible = not message.is_empty()
 	message_label.text = message
 
@@ -429,10 +483,19 @@ func _render_game_over() -> void:
 		content.add_child(name_label)
 
 		var score_label := Label.new()
-		score_label.text = str(p.get("score", 0))
+		score_label.text = str(int(p.get("score", 0)))
 		score_label.add_theme_font_override("font", Style.mono_700)
 		score_label.add_theme_font_size_override("font_size", 24)
 		score_label.add_theme_color_override("font_color", Style.GOLD if is_winner else Style.INK2)
 		content.add_child(score_label)
 
 		standings.add_child(row["root"])
+
+
+## Guards against leaving twice: signals from the autoloads can arrive after a
+## transition is already queued, and get_tree() is null once we are detached.
+func _change_scene(path: String) -> void:
+	if _leaving or not is_inside_tree():
+		return
+	_leaving = true
+	get_tree().change_scene_to_file.call_deferred(path)
