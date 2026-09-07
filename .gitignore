@@ -3,8 +3,9 @@
 *.translation
 export.cfg
 
-# Exported web build output
-build/
+# The exported web build is committed on purpose: Netlify deploys this repo
+# straight from git with no build step, since its build image has no Godot.
+# Re-export before pushing if you changed anything under godot/.
 
 # Python
 __pycache__/

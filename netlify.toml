@@ -1,3 +1,10 @@
+# The exported web build is committed to the repo and deployed as-is: there is
+# no build step because Netlify's image has no Godot, and installing it per
+# deploy would mean pulling the ~1.5 GB export template bundle every time.
+#
+# Re-export before pushing if anything under godot/ changed:
+#   cd godot && godot --headless --export-release "Web" ../build/web/index.html
+
 [build]
   publish = "build/web"
 
